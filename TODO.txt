@@ -1,0 +1,21 @@
+1) Leggere i paper degli attacchi:
+FGSM (white-box) --> https://arxiv.org/abs/1412.6572
+Square Attack (black-box) --> https://arxiv.org/abs/1912.00049
+
+1)
+- Scaricare Dataset FaceForensics++
+- Campiono casualmente N frame per video
+- creare classe dataset che restituisca (image,label)
+
+2) 
+- Allenare Resnet50 sulle immagini clean
+- Attaccare immagini in fase di inferenza 
+- salva metriche accuracy, recall, ROC, AUROC
+
+3) 
+- Rendere modello robusto su FGSM -> res_fgsm
+- Rendere modello robusto su Square Attack -> res_sqare
+- Attaccare immagini in fase di inferenza
+- salva metriche
+
+- compara le metriche caso clean, res_fgsm, res_square
