@@ -4,8 +4,8 @@ import random
 from pathlib import Path
 from tqdm import tqdm
 
-VIDEO_DIR = "faceforensics/data/manipulated_sequences/Deepfakes/c23/videos"
-OUTPUT_DIR = "faceforensics/data/manipulated_sequences/Deepfakes/c23/frames"
+VIDEO_DIR = "faceforensics/data/original_sequences/youtube/c23/videos"
+OUTPUT_DIR = "faceforensics/data/original_sequences/youtube/c23/frames"
 NUM_FRAMES_PER_VIDEO = 10
 IMAGE_FORMAT = "jpg" 
 SEED = 42

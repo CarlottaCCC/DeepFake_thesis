@@ -17,3 +17,8 @@ Then for each video I have sampled randomly 10 frames in the jpg format (extract
 
 I have defined the FFDataset class that returns the couples (frame,label).
 In particular it returns the frames from the official split json files for train, validation and test set of the FF++ dataset.
+
+These json files contain the coupled videos indexes [indx_1, indx_2] such that
+- the indx_1 and indx_2 videos are the original ones
+- the indx_1 video is manipulated using the indx_2 face
+- the indx_2 video is manipulated using the indx_1 face
