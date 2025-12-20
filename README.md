@@ -22,3 +22,6 @@ These json files contain the coupled videos indexes [indx_1, indx_2] such that
 - the indx_1 and indx_2 videos are the original ones
 - the indx_1 video is manipulated using the indx_2 face
 - the indx_2 video is manipulated using the indx_1 face
+
+## Metrics
+I have created a class that computes at each epoch accuracy, precision, recall, f1 score and ROC-AUC and saves their history through the epochs for plotting

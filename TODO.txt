@@ -3,9 +3,9 @@ FGSM (white-box) --> https://arxiv.org/abs/1412.6572
 Square Attack (black-box) --> https://arxiv.org/abs/1912.00049
 
 1)
-- Scaricare Dataset FaceForensics++
-- Campiono casualmente N frame per video
-- creare classe dataset che restituisca (image,label)
+- Scaricare Dataset FaceForensics++  DONE
+- Campiono casualmente N frame per video  DONE
+- creare classe dataset che restituisca (image,label)  DONE
 
 2) 
 - Allenare Resnet50 sulle immagini clean
