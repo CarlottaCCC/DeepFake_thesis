@@ -7,33 +7,45 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from utils import *
+import foolbox as fb
 
-
-def train_clean(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, criterion, device, train_losses, train_metrics, val_metrics):
+def train_robust(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, criterion, device, train_losses, train_metrics, val_metrics):
+    train_loss = 0.0
     history = {}
+    fmodel = fb.PyTorchModel(model, bounds=(0,1), device=device)
 
     for epoch in range(start_epoch, NUM_EPOCHS):
         #TRAINING
         model.train()
         train_metrics.reset_epoch()
         val_metrics.reset_epoch()
-        train_loss = 0.0
 
         loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         for batch in loop:
             if batch is None:
                 continue
             imgs, y = batch
-            #for CE loss labels must be (B,) so 1D with dtype torch.long
-            imgs, y = imgs.to(device), y.to(device).long().squeeze()
-            logits = model(imgs)
+            imgs, y = imgs.to(device), y.to(device).float().unsqueeze(1)
+
+            #In order to generate FGSM we need the gradients
+            imgs.requires_grad = True
+            
+            #ADVERSARIAL TRAINING on FGSM radom start (robust to gradient masking)
+            x = imgs + torch.empty_like(imgs).uniform_(-EPS, EPS)
+            x = torch.clamp(x, 0, 1)
+
+            x.requires_grad = True
+            logits = model(x)
             loss = criterion(logits, y)
 
+            grad = torch.autograd.grad(loss, x)[0]
+            adv_imgs = x + EPS * grad.sign()
+            adv_imgs = torch.clamp(adv_imgs, 0, 1)
+
             optimizer.zero_grad()
-            loss.backward()
             optimizer.step()
             train_loss += loss.item() * imgs.size(0)
-            probs = torch.softmax(logits, dim=1)[:,1].detach().cpu().numpy()
+            probs = torch.sigmoid(logits).detach().cpu().numpy().ravel()
             train_metrics.update(y, probs)
 
         train_losses.append(train_loss/len(train_loader.dataset))
@@ -49,10 +61,10 @@ def train_clean(model, train_loader, val_loader, start_epoch, num_epochs, optimi
                 if batch is None:
                     continue
                 imgs, y = batch
-                imgs, y = imgs.to(device), y.to(device).long().squeeze()
+                imgs, y = imgs.to(device), y.to(device).float().unsqueeze(1)
                 logits = model(imgs)
     
-                probs = torch.softmax(logits, dim=1)[:,1].detach().cpu().numpy()
+                probs = torch.sigmoid(logits).cpu().numpy().ravel()
                 val_metrics.update(y, probs)
 
         val_results = val_metrics.compute()
@@ -65,41 +77,38 @@ def train_clean(model, train_loader, val_loader, start_epoch, num_epochs, optimi
         print("VALIDATION")
         val_metrics.print(epoch)
 
-        print(probs.min(),probs.mean(),probs.max())
 
+        #SALVA I PESI DEL MODELLO
+        torch.save({
+            'epoch': epoch + 1,
+            'model_state_dict': model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            'loss': train_loss,
+            'train_losses': train_losses,
+            "train_auc": train_metrics.auc_list,
+            "val_auc": val_metrics.auc_list,
+            "train tpr": train_metrics.tpr,
+            "val tpr": val_metrics.tpr,
+            "train fpr": train_metrics.fpr,
+            "val fpr": val_metrics.fpr
+        }, f'models/fgsm_resnet50/resnet50_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}.pt')
+        print("Model saved in models/fgsm_resnet50")
 
-    #SALVA I PESI DEL MODELLO
-    torch.save({
-        'epoch': epoch + 1,
-        'model_state_dict': model.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-        'loss': train_loss,
-        'train_losses': train_losses,
-        "train_auc": train_metrics.auc_list,
-        "val_auc": val_metrics.auc_list,
-        "train tpr": train_metrics.tpr,
-        "val tpr": val_metrics.tpr,
-        "train fpr": train_metrics.fpr,
-        "val fpr": val_metrics.fpr
-    }, f'models/clean_resnet50/resnet50_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_2.pt')
-    print("Model saved in models/clean_resnet50")
-    #saving metrics history
-    history = {
-        "train_losses": train_losses,
-        "train_auc": train_metrics.auc_list,
-        "val_auc": val_metrics.auc_list,
-        "train_f1": train_metrics.f1_list,
-        "val_f1": val_metrics.f1_list,
-        "train_precision": train_metrics.precision_list,
-        "val_precision": val_metrics.precision_list,
-        "train_recall": train_metrics.recall_list,
-        "val_recall": val_metrics.recall_list,
-        "train_accuracy": train_metrics.accuracy_list,
-        "val_accuracy": val_metrics.accuracy_list
-    }
-    save_history_json(history,f"history_clean/history_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_2.json")
-
-    return train_metrics, val_metrics, train_losses
+       # saving metrics history
+        history = {
+            "train_losses": train_losses,
+            "train_auc": train_metrics.auc_list,
+            "val_auc": val_metrics.auc_list,
+            "train_f1": train_metrics.f1_list,
+            "val_f1": val_metrics.f1_list,
+            "train_precision": train_metrics.precision_list,
+            "val_precision": val_metrics.precision_list,
+            "train_recall": train_metrics.recall_list,
+            "val_recall": val_metrics.recall_list,
+            "train_accuracy": train_metrics.accuracy_list,
+            "val_accuracy": val_metrics.accuracy_list
+        }
+        save_history_json(history,f"history_fgsm/history_fgsm_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}.json")
 
 if __name__ == "__main__":
 
@@ -107,7 +116,7 @@ if __name__ == "__main__":
     # Modello ResNet50 senza pesi pretrained
     model = resnet50(weights=None)
     # I modify the last layer for binary classification
-    model.fc = nn.Linear(model.fc.in_features, 2)
+    model.fc = nn.Linear(model.fc.in_features, 1)
     model = model.to(device)
     
     transform = transforms.Compose([
@@ -141,53 +150,21 @@ if __name__ == "__main__":
     num_fake_train = train_counts[1]
     print(num_fake_train)
     print(num_real_train)
-    pos_weight = num_real_train/(num_fake_train + num_real_train)
-    neg_weight = num_fake_train/(num_fake_train + num_real_train)
-    class_weights = torch.tensor([pos_weight, neg_weight]).to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    pos_weight = torch.tensor([num_real_train/num_fake_train]).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WD)
     train_metrics = Metrics()
     val_metrics = Metrics()
     start_epoch = 0
     train_losses = []
 
-    # ricarico il checkpoint
-    #checkpoint_path = "models/clean_resnet50/resnet50_clean_epoch_2_LR_0.0001_batchsize_16_WD_0.0001.pt"
-    #checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    #model.load_state_dict(checkpoint['model_state_dict'])
-    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #start_epoch = checkpoint['epoch'] # riparte dall'epoch successivo
-    #print(f"Riprendo dal epoch {start_epoch}")
+    # Starting robust training from the pre-trained clean model
+    checkpoint_path = "models/clean_resnet50/resnet50_clean_epoch_2_LR_0.0001_batchsize_16_WD_0.0001.pt"
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    #train_losses = checkpoint["train_losses"]
-#
-    #train_metrics.auc_list = checkpoint["train_auc"]
-    #val_metrics.auc_list = checkpoint["val_auc"]
-    #
-    #train_metrics.tpr = checkpoint["train tpr"]
-    #val_metrics.tpr = checkpoint["val tpr"]
-    #
-    #train_metrics.fpr = checkpoint["train fpr"]
-    #val_metrics.fpr = checkpoint["val fpr"]
-#
-    #history_path = "history_clean/history_clean_epoch_2_LR_0.0001_batchsize_16_WD_0.0001.json"
-    #with open(history_path, "r") as f:
-    #    history = json.load(f)
-    #
-    #train_metrics.f1_list = history["train_f1"]
-    #val_metrics.f1_list = history["val_f1"]
-    #
-    #train_metrics.precision_list = history["train_precision"]
-    #val_metrics.precision_list = history["val_precision"]
-    #
-    #train_metrics.recall_list = history["train_recall"]
-    #val_metrics.recall_list = history["val_recall"]
-    #
-    #train_metrics.accuracy_list = history["train_accuracy"]
-    #val_metrics.accuracy_list = history["val_accuracy"]
-    
-    
-    train_metrics, val_metrics, train_losses = train_clean(
+    train_metrics, val_metrics, train_losses = train_robust(
         model=model, 
         train_loader=train_loader, 
         val_loader=val_loader,

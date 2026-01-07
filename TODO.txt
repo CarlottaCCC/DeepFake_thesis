@@ -8,9 +8,12 @@ Square Attack (black-box) --> https://arxiv.org/abs/1912.00049
 - creare classe dataset che restituisca (image,label)  DONE
 
 2) 
+- implementare clean training loop    DONE
 - Allenare Resnet50 sulle immagini clean
 - Attaccare immagini in fase di inferenza 
-- salva metriche accuracy, recall, ROC, AUROC
+- salva metriche accuracy, recall, ROC, AUROC, ASR  DONE
+- implementare funzione plot metriche  DONE
+
 
 3) 
 - Rendere modello robusto su FGSM -> res_fgsm
