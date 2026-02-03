@@ -12,7 +12,7 @@ from utils import *
 def train_clean(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, criterion, device, train_losses, train_metrics, val_metrics):
     history = {}
 
-    for epoch in range(start_epoch, NUM_EPOCHS):
+    for epoch in range(start_epoch, num_epochs):
         #TRAINING
         model.train()
         train_metrics.reset_epoch()
@@ -26,17 +26,20 @@ def train_clean(model, train_loader, val_loader, start_epoch, num_epochs, optimi
             imgs, y = batch
             #for CE loss labels must be (B,) so 1D with dtype torch.long
             imgs, y = imgs.to(device), y.to(device).long().squeeze()
+            #print(y.shape, y.dtype, y.min(), y.max())
             logits = model(imgs)
+            #print(logits.shape)
             loss = criterion(logits, y)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss += loss.item() * imgs.size(0)
+            epoch_loss = train_loss / len(train_loader.dataset)
             probs = torch.softmax(logits, dim=1)[:,1].detach().cpu().numpy()
             train_metrics.update(y, probs)
 
-        train_losses.append(train_loss/len(train_loader.dataset))
+        train_losses.append(epoch_loss)
         train_results = train_metrics.compute()
 
         #VALIDATION
@@ -59,45 +62,46 @@ def train_clean(model, train_loader, val_loader, start_epoch, num_epochs, optimi
 
         print(f"Epoch {epoch+1}:")
         print("TRAINING")
-        print("Training loss:", train_loss)
+        print("Training loss:", epoch_loss)
         train_metrics.print(epoch)
 
         print("VALIDATION")
         val_metrics.print(epoch)
 
         print(probs.min(),probs.mean(),probs.max())
+        print("softmax mean:", torch.softmax(logits, dim=1).mean(0))
 
 
-    #SALVA I PESI DEL MODELLO
-    torch.save({
-        'epoch': epoch + 1,
-        'model_state_dict': model.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-        'loss': train_loss,
-        'train_losses': train_losses,
-        "train_auc": train_metrics.auc_list,
-        "val_auc": val_metrics.auc_list,
-        "train tpr": train_metrics.tpr,
-        "val tpr": val_metrics.tpr,
-        "train fpr": train_metrics.fpr,
-        "val fpr": val_metrics.fpr
-    }, f'models/clean_resnet50/resnet50_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_2.pt')
-    print("Model saved in models/clean_resnet50")
-    #saving metrics history
-    history = {
-        "train_losses": train_losses,
-        "train_auc": train_metrics.auc_list,
-        "val_auc": val_metrics.auc_list,
-        "train_f1": train_metrics.f1_list,
-        "val_f1": val_metrics.f1_list,
-        "train_precision": train_metrics.precision_list,
-        "val_precision": val_metrics.precision_list,
-        "train_recall": train_metrics.recall_list,
-        "val_recall": val_metrics.recall_list,
-        "train_accuracy": train_metrics.accuracy_list,
-        "val_accuracy": val_metrics.accuracy_list
-    }
-    save_history_json(history,f"history_clean/history_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_2.json")
+        #SALVA I PESI DEL MODELLO
+        torch.save({
+            'epoch': epoch + 1,
+            'model_state_dict': model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            'loss': train_loss,
+            'train_losses': train_losses,
+            "train_auc": train_metrics.auc_list,
+            "val_auc": val_metrics.auc_list,
+            "train tpr": train_metrics.tpr,
+            "val tpr": val_metrics.tpr,
+            "train fpr": train_metrics.fpr,
+            "val fpr": val_metrics.fpr
+        }, f'models/clean_resnet50/resnet50_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_2.pt')
+        print("Model saved in models/clean_resnet50")
+        #saving metrics history
+        history = {
+            "train_losses": train_losses,
+            "train_auc": train_metrics.auc_list,
+            "val_auc": val_metrics.auc_list,
+            "train_f1": train_metrics.f1_list,
+            "val_f1": val_metrics.f1_list,
+            "train_precision": train_metrics.precision_list,
+            "val_precision": val_metrics.precision_list,
+            "train_recall": train_metrics.recall_list,
+            "val_recall": val_metrics.recall_list,
+            "train_accuracy": train_metrics.accuracy_list,
+            "val_accuracy": val_metrics.accuracy_list
+        }
+        save_history_json(history,f"history_clean/history_clean_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_2.json")
 
     return train_metrics, val_metrics, train_losses
 
@@ -152,39 +156,38 @@ if __name__ == "__main__":
     train_losses = []
 
     # ricarico il checkpoint
-    #checkpoint_path = "models/clean_resnet50/resnet50_clean_epoch_2_LR_0.0001_batchsize_16_WD_0.0001.pt"
-    #checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    #model.load_state_dict(checkpoint['model_state_dict'])
-    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #start_epoch = checkpoint['epoch'] # riparte dall'epoch successivo
-    #print(f"Riprendo dal epoch {start_epoch}")
+    checkpoint_path = "models/clean_resnet50/resnet50_clean_epoch_16_LR_0.0003_batchsize_32_WD_1e-05_2.pt"
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    start_epoch = checkpoint['epoch'] # riparte dall'epoch successivo
+    print(f"Riprendo dal epoch {start_epoch}")
+    train_losses = checkpoint["train_losses"]
 
-    #train_losses = checkpoint["train_losses"]
-#
-    #train_metrics.auc_list = checkpoint["train_auc"]
-    #val_metrics.auc_list = checkpoint["val_auc"]
-    #
-    #train_metrics.tpr = checkpoint["train tpr"]
-    #val_metrics.tpr = checkpoint["val tpr"]
-    #
-    #train_metrics.fpr = checkpoint["train fpr"]
-    #val_metrics.fpr = checkpoint["val fpr"]
-#
-    #history_path = "history_clean/history_clean_epoch_2_LR_0.0001_batchsize_16_WD_0.0001.json"
-    #with open(history_path, "r") as f:
-    #    history = json.load(f)
-    #
-    #train_metrics.f1_list = history["train_f1"]
-    #val_metrics.f1_list = history["val_f1"]
-    #
-    #train_metrics.precision_list = history["train_precision"]
-    #val_metrics.precision_list = history["val_precision"]
-    #
-    #train_metrics.recall_list = history["train_recall"]
-    #val_metrics.recall_list = history["val_recall"]
-    #
-    #train_metrics.accuracy_list = history["train_accuracy"]
-    #val_metrics.accuracy_list = history["val_accuracy"]
+    train_metrics.auc_list = checkpoint["train_auc"]
+    val_metrics.auc_list = checkpoint["val_auc"]
+    
+    train_metrics.tpr = checkpoint["train tpr"]
+    val_metrics.tpr = checkpoint["val tpr"]
+    
+    train_metrics.fpr = checkpoint["train fpr"]
+    val_metrics.fpr = checkpoint["val fpr"]
+
+    history_path = "history_clean/history_clean_epoch_16_LR_0.0003_batchsize_32_WD_1e-05_2.json"
+    with open(history_path, "r") as f:
+        history = json.load(f)
+    
+    train_metrics.f1_list = history["train_f1"]
+    val_metrics.f1_list = history["val_f1"]
+    
+    train_metrics.precision_list = history["train_precision"]
+    val_metrics.precision_list = history["val_precision"]
+    
+    train_metrics.recall_list = history["train_recall"]
+    val_metrics.recall_list = history["val_recall"]
+    
+    train_metrics.accuracy_list = history["train_accuracy"]
+    val_metrics.accuracy_list = history["val_accuracy"]
     
     
     train_metrics, val_metrics, train_losses = train_clean(

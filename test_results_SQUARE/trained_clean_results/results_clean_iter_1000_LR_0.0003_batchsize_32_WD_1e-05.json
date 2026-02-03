@@ -1,0 +1,36 @@
+{
+    "clean_auc": [
+        0.8200000000000001
+    ],
+    "square_auc": [
+        0.7908
+    ],
+    "clean_f1": [
+        0.7692307692307693
+    ],
+    "square_f1": [
+        0.7142857142857143
+    ],
+    "clean_precision": [
+        0.7407407407407407
+    ],
+    "square_precision": [
+        0.7291666666666666
+    ],
+    "clean_recall": [
+        0.8
+    ],
+    "square_recall": [
+        0.7
+    ],
+    "clean_accuracy": [
+        0.76
+    ],
+    "square_accuracy": [
+        0.72
+    ],
+    "square_asr": [
+        0.07894736842105263
+    ],
+    "square_epsilon": 0.03137254901960784
+}

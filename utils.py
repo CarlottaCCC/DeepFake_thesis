@@ -10,12 +10,16 @@ from torch.utils.data import Subset
 
 #### CONSTANTS ########
 ROOT_DIR = r"faceforensics\data5"
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 LR = 3e-4
-WD = 1e-4
-NUM_EPOCHS = 5
+WD = 1e-5
+NUM_EPOCHS = 20
 
-EPS = 8/255
+EPS = 2/255
+TEST_EPS_FGSM = 2/255
+TEST_EPS_SQUARE = 16/255
+SQUARE_ITER = 5000
+LAMBDA_ENTROPY = 0.01
 
 # function that counts the number of fake and real samples
 
@@ -42,7 +46,7 @@ class Metrics:
         self.f1_list = []
         self.all_probs = []
         self.all_labels = []
-        self.asr = 0
+        self.asr_list = []
         self.history = {}
     
     def reset_epoch(self):
@@ -87,8 +91,11 @@ class Metrics:
             "auc": roc_auc
         }
 
-    def attack_success_rate(self, y_true, probs_clean, probs_adv, threshold=0.5):
+    def attack_success_rate(self, all_probs_clean, threshold=0.5):
+        y_true = np.concatenate(self.all_labels)
         y_true = np.asarray(y_true)
+        probs_adv = np.concatenate(self.all_probs)
+        probs_clean = np.concatenate(all_probs_clean)
     
         pred_clean = (probs_clean > threshold).astype(int)
         pred_adv   = (probs_adv > threshold).astype(int)
@@ -102,7 +109,8 @@ class Metrics:
         if correct_clean.sum() == 0:
             return 0.0  # no division by 0
         
-        self.asr = successful_attacks.sum() / correct_clean.sum()
+        asr = successful_attacks.sum() / correct_clean.sum()
+        self.asr_list.append(asr)
 
     
     def print(self, epoch):
@@ -114,20 +122,21 @@ class Metrics:
 
 
 
-def plot_roc(fpr, tpr, auc_score, epoch):
+def plot_roc(fpr, tpr, auc_score, epoch, title):
     plt.figure()
     plt.plot(fpr, tpr, label=f"ROC (AUC={auc_score:.3f})")
     plt.plot([0, 1], [0, 1], linestyle="--")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.title(f"ROC Curve - Epoch {epoch}")
+    plt.title(f"Validation ROC Curve - Epoch {epoch}")
     plt.legend()
     plt.grid(True)
-    plt.savefig(f"metrics_images/ROC_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png", dpi=300)
+    plt.savefig(title, dpi=300)
 
 
-def plot_metric(train_list, val_list, metric_name):
-    epochs = range(1, NUM_EPOCHS + 1)
+
+def plot_metric(train_list, val_list, num_epochs, metric_name, title):
+    epochs = range(1, num_epochs + 1)
 
     plt.figure()
     plt.plot(epochs, [l.detach().cpu().item() if torch.is_tensor(l) else l for l in train_list], label=f"Train {metric_name}")
@@ -137,7 +146,7 @@ def plot_metric(train_list, val_list, metric_name):
     plt.ylabel(metric_name)
     plt.legend()
     plt.grid(True)
-    plt.savefig(f"metrics_images/{metric_name}_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png", dpi=300)
+    plt.savefig(title, dpi=300)
 
 
 def plot_loss(train_losses):
@@ -174,3 +183,81 @@ def save_history_json(history, save_path):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     with open(save_path, "w") as f:
         json.dump(history, f, indent=4)
+
+def freeze_bn(model):
+    for m in model.modules():
+        if isinstance(m, torch.nn.BatchNorm2d):
+            m.eval()
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+def plot_model_metrics_by_attack(
+    data,
+    metrics,
+    output_dir="plots",
+    figsize=(12, 6),
+    bar_width=0.25,
+    dpi=300
+):
+    """
+    data: dict -> model -> attack -> metric -> value
+    metrics: list of metric names (e.g. ["accuracy", "attack_success", "AUC_score"])
+    """
+
+    models = list(data.keys())
+    attacks = list(next(iter(data.values())).keys())
+
+    n_models = len(models)
+    x = np.arange(len(attacks))
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    MODEL_COLORS = {
+        "Clean_Model": "#E69F00",   # arancio soft
+        "FGSM_Model": "#56B4E9",    # azzurro soft
+        "SQUARE_Model": "#009E73",  # verde soft
+    }
+
+    for metric in metrics:
+        plt.figure(figsize=figsize)
+
+        for i, model in enumerate(models):
+            values = [
+                data[model][attack].get(metric, np.nan)
+                for attack in attacks
+            ]
+
+            plt.bar(
+                x + i * bar_width,
+                values,
+                width=bar_width,
+                label=model,
+                color=MODEL_COLORS.get(model, "gray")
+            )
+
+        plt.xlabel("Attack")
+        plt.ylabel(metric)
+        plt.title(f"Models Comparison on {metric}")
+
+        plt.xticks(
+            x + bar_width * (n_models - 1) / 2,
+            attacks,
+            rotation=30,
+            ha="right"
+        )
+
+        plt.legend()
+        plt.grid(axis="y", linestyle="--", alpha=0.6)
+        plt.tight_layout()
+
+        filename = f"{metric}_by_attack.png"
+        plt.savefig(
+            os.path.join(output_dir, filename),
+            dpi=dpi,
+            bbox_inches="tight"
+        )
+
+        plt.close()
