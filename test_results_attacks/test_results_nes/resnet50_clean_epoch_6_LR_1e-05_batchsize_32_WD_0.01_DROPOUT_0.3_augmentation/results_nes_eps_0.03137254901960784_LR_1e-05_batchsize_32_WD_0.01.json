@@ -1,0 +1,39 @@
+{
+    "clean_auc": [
+        0.9263999999999999
+    ],
+    "nes_auc": [
+        0.7847999999999999
+    ],
+    "clean_f1": [
+        0.86
+    ],
+    "nes_f1": [
+        0.6732673267326733
+    ],
+    "clean_precision": [
+        0.86
+    ],
+    "nes_precision": [
+        0.6666666666666666
+    ],
+    "clean_recall": [
+        0.86
+    ],
+    "nes_recall": [
+        0.68
+    ],
+    "clean_accuracy": [
+        0.86
+    ],
+    "nes_accuracy": [
+        0.67
+    ],
+    "nes_asr": [
+        0.19
+    ],
+    "fgsm_epsilon_train": 0.00784313725490196,
+    "nes_epsilon_test": 0.3,
+    "nes_avg_l2": 7.472518463134765,
+    "nes_avg_linf": 0.03137257695198059
+}

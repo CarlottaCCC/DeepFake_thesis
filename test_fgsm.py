@@ -8,8 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utils import *
 import foolbox as fb
-from art.estimators.classification import PyTorchClassifier
-from art.attacks.evasion import SquareAttack
 import torch.optim as optim
 import csv
 
@@ -102,7 +100,7 @@ if __name__ == "__main__":
     model = model.to(device)
 
     # I load the trained clean model
-    checkpoint_path = "models/square_resnet50/resnet50_square_epoch_10_LR_0.0003_batchsize_32_WD_1e-05.pt"
+    checkpoint_path = "models_10/clean_resnet50/resnet50_clean_epoch_40_LR_0.0001_batchsize_32_WD_0.0001.pt"
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     
@@ -114,10 +112,10 @@ if __name__ == "__main__":
     print("Initializing testing dataset....")
     test_dataset = FFDataset(root_dir=ROOT_DIR, split="test", transform=transform)
     # I get a smaller subset of 500 images
-    test_small = balanced_subset(test_dataset, n_per_class=250)
+    #test_small = balanced_subset(test_dataset, n_per_class=250)
     
     print("Initializing test loader...")
-    test_loader = DataLoader(test_small, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     clean_metrics, fgsm_metrics = test_fgsm(model, test_loader, device)
 

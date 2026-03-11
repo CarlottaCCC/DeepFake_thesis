@@ -1,4 +1,4 @@
-from torchvision.models import resnet50
+from torchvision.models import resnet50, ResNet50_Weights
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from dataset import FFDataset
@@ -18,17 +18,10 @@ def entropy_penalty(logits, eps=1e-8):
     entropy = -torch.sum(probs * log_probs, dim=1)  # (B,)
     return entropy.mean()
 
-def train_robust(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics):
+def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics):
     train_loss = 0.0
     history = {}
 
-    # I define the image bounds for the fmodel in order to properly attack in that space
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(1,3,1,1).to(device)
-    std  = torch.tensor([0.229, 0.224, 0.225]).view(1,3,1,1).to(device)
-
-    lower = (0 - mean) / std
-    upper = (1 - mean) / std
-    #fmodel = fb.PyTorchModel(model, bounds=(lower.min().item(), upper.max().item()), device=device)
 
     for epoch in range(start_epoch, NUM_EPOCHS):
         #TRAINING
@@ -56,7 +49,7 @@ def train_robust(model, train_loader, val_loader, start_epoch, num_epochs, optim
             #I compute the gradient respect to the image
             #How much does the clean_loss change if I change the input image
             grad_imgs = torch.autograd.grad(loss_clean, imgs, retain_graph=True, create_graph=False)[0]
-            imgs_adv = imgs + EPS * grad_imgs.sign()
+            imgs_adv = imgs + epsilon * grad_imgs.sign()
             imgs_adv = torch.clamp(imgs_adv, 0, 1)
             
             #Adversarial forward pass
@@ -138,7 +131,7 @@ def train_robust(model, train_loader, val_loader, start_epoch, num_epochs, optim
             "train_fpr_clean": train_metrics_clean.fpr,
             "train_fpr_adv": train_metrics_adv.fpr,
             "val_fpr": val_metrics.fpr
-        }, f'models/square_resnet50/resnet50_square_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}.pt')
+        }, f'models_10/square_resnet50/resnet50_square_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_fine_tuned.pt')
         print("Model saved in models/square_resnet50")
 
        # saving metrics history
@@ -159,10 +152,11 @@ def train_robust(model, train_loader, val_loader, start_epoch, num_epochs, optim
             "train_accuracy_clean": train_metrics_clean.accuracy_list,
             "train_accuracy_adv": train_metrics_adv.accuracy_list,
             "val_accuracy": val_metrics.accuracy_list,
-            "train_asr": train_metrics_adv.asr_list
+            "train_asr": train_metrics_adv.asr_list,
+            "epsilon_train": epsilon
         }
 
-        save_history_json(history,f"history_square/history_square_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}.json")
+        save_history_json(history,f"history_10/history_square/history_square_epoch_{epoch+1}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}.json")
 
     return train_metrics_clean, train_metrics_adv, val_metrics, train_losses
 
@@ -170,9 +164,12 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Modello ResNet50 senza pesi pretrained
-    model = resnet50(weights=None)
+    model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
     # I modify the last layer for binary classification
-    model.fc = nn.Linear(model.fc.in_features, 2)
+    model.fc = nn.Sequential(
+    nn.Dropout(DROPOUT),
+    nn.Linear(model.fc.in_features, 2)
+    )
     model = model.to(device)
     
     transform = transforms.Compose([
@@ -199,18 +196,19 @@ if __name__ == "__main__":
     
     # Unbalanced dataset since 4000 fake videos and 1000 real
     # so balance fake vs real during training
-    print("Counting labels...")
-    train_counts = count_labels(train_dataset)
-    print("Counting done")
-    num_real_train = train_counts[0]
-    num_fake_train = train_counts[1]
-    print(num_fake_train)
-    print(num_real_train)
-    pos_weight = num_real_train/(num_fake_train + num_real_train)
-    neg_weight = num_fake_train/(num_fake_train + num_real_train)
-    class_weights = torch.tensor([pos_weight, neg_weight]).to(device)
+    #print("Counting labels...")
+    #train_counts = count_labels(train_dataset)
+    #print("Counting done")
+    #num_real_train = train_counts[0]
+    #num_fake_train = train_counts[1]
+    #print(num_fake_train)
+    #print(num_real_train)
+    #pos_weight = num_real_train/(num_fake_train + num_real_train)
+    #neg_weight = num_fake_train/(num_fake_train + num_real_train)
+    #class_weights = torch.tensor([pos_weight, neg_weight]).to(device)
     # Cross entropy loss with label smoothing
-    criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
+    #criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WD)
     train_metrics_clean = Metrics()
@@ -220,78 +218,83 @@ if __name__ == "__main__":
     train_losses = []
 
     # Starting robust training from the pre-trained clean model
-    checkpoint_path = "models/square_resnet50/resnet50_square_epoch_9_LR_0.0003_batchsize_32_WD_1e-05.pt"
+    checkpoint_path = "models_10/clean_resnet50/resnet50_clean_epoch_2_LR_0.0001_batchsize_32_WD_0.01_DROPOUT_0.0_hor_flip.pt"
+    checkpoint_path = "models_10/square_resnet50/resnet50_square_epoch_4_LR_0.0001_batchsize_32_WD_0.01_EPS_4_fine_tuned.pt"
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    start_epoch = checkpoint['epoch'] # riparte dall'epoch successivo
-    print(f"Riprendo dal epoch {start_epoch}")
-    train_losses = checkpoint["train_losses"]
-
-    train_metrics_clean.auc_list = checkpoint["train_auc_clean"]
-    train_metrics_adv.auc_list = checkpoint["train_auc_adv"]
-    val_metrics.auc_list = checkpoint["val_auc"]
+    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #start_epoch = checkpoint['epoch'] # riparte dall'epoch successivo
+    #print(f"Riprendo dal epoch {start_epoch}")
+    #train_losses = checkpoint["train_losses"]
+#
+    #train_metrics_clean.auc_list = checkpoint["train_auc_clean"]
+    #train_metrics_adv.auc_list = checkpoint["train_auc_adv"]
+    #val_metrics.auc_list = checkpoint["val_auc"]
+    #
+    #train_metrics_clean.tpr = checkpoint["train_tpr_clean"]
+    #train_metrics_adv.tpr = checkpoint["train_tpr_adv"]
+    #val_metrics.tpr = checkpoint["val_tpr"]
+    #
+    #train_metrics_clean.fpr = checkpoint["train_fpr_clean"]
+    #train_metrics_adv.fpr = checkpoint["train_fpr_adv"]
+    #val_metrics.fpr = checkpoint["val_fpr"]
+#
+    #history_path = "history_10/history_fgsm/history_square_epoch_4_LR_0.0001_batchsize_32_WD_0.01_EPS_4_fine_tuned.json"
+    #with open(history_path, "r") as f:
+    #    history = json.load(f)
+    #
+    #train_metrics_clean.f1_list = history["train_f1_clean"]
+    #train_metrics_adv.f1_list = history["train_f1_adv"]
+    #val_metrics.f1_list = history["val_f1"]
+    #
+    #train_metrics_clean.precision_list = history["train_precision_clean"]
+    #train_metrics_adv.precision_list = history["train_precision_adv"]
+    #val_metrics.precision_list = history["val_precision"]
+    #
+    #train_metrics_clean.recall_list = history["train_recall_clean"]
+    #train_metrics_adv.recall_list = history["train_recall_adv"]
+    #val_metrics.recall_list = history["val_recall"]
+    #
+    #train_metrics_clean.accuracy_list = history["train_accuracy_clean"]
+    #train_metrics_adv.accuracy_list = history["train_accuracy_adv"]
+    #val_metrics.accuracy_list = history["val_accuracy"]
+#
+    #train_metrics_adv.asr_list = history["train_asr"]
+#
+    epsilons = [4/255]
+    for eps in epsilons:
+        print(f"Starting training with epsilon {eps}")
+        train_metrics_clean, train_metrics_adv, val_metrics, train_losses = train_robust(
+            model=model, 
+            train_loader=train_loader, 
+            val_loader=val_loader,
+            epsilon=eps,
+            start_epoch=start_epoch, 
+            num_epochs=NUM_EPOCHS, 
+            optimizer=optimizer, 
+            criterion=criterion,
+            device=device,
+            train_losses=train_losses,
+            train_metrics_clean=train_metrics_clean,
+            train_metrics_adv=train_metrics_adv,
+            val_metrics=val_metrics) 
+        
     
-    train_metrics_clean.tpr = checkpoint["train_tpr_clean"]
-    train_metrics_adv.tpr = checkpoint["train_tpr_adv"]
-    val_metrics.tpr = checkpoint["val_tpr"]
-    
-    train_metrics_clean.fpr = checkpoint["train_fpr_clean"]
-    train_metrics_adv.fpr = checkpoint["train_fpr_adv"]
-    val_metrics.fpr = checkpoint["val_fpr"]
-
-    history_path = "history_square/history_square_epoch_9_LR_0.0003_batchsize_32_WD_1e-05.json"
-    with open(history_path, "r") as f:
-        history = json.load(f)
-    
-    train_metrics_clean.f1_list = history["train_f1_clean"]
-    train_metrics_adv.f1_list = history["train_f1_adv"]
-    val_metrics.f1_list = history["val_f1"]
-    
-    train_metrics_clean.precision_list = history["train_precision_clean"]
-    train_metrics_adv.precision_list = history["train_precision_adv"]
-    val_metrics.precision_list = history["val_precision"]
-    
-    train_metrics_clean.recall_list = history["train_recall_clean"]
-    train_metrics_adv.recall_list = history["train_recall_adv"]
-    val_metrics.recall_list = history["val_recall"]
-    
-    train_metrics_clean.accuracy_list = history["train_accuracy_clean"]
-    train_metrics_adv.accuracy_list = history["train_accuracy_adv"]
-    val_metrics.accuracy_list = history["val_accuracy"]
-
-    train_metrics_adv.asr_list = history["train_asr"]
-
-    train_metrics_clean, train_metrics_adv, val_metrics, train_losses = train_robust(
-        model=model, 
-        train_loader=train_loader, 
-        val_loader=val_loader,
-        start_epoch=start_epoch, 
-        num_epochs=NUM_EPOCHS, 
-        optimizer=optimizer, 
-        criterion=criterion,
-        device=device,
-        train_losses=train_losses,
-        train_metrics_clean=train_metrics_clean,
-        train_metrics_adv=train_metrics_adv,
-        val_metrics=val_metrics)
-    
-
-    #plot loss
-    plot_loss(train_metrics_clean.train_losses)
-    #plot accuracy
-    plot_metric(train_metrics_clean.accuracy_list, val_metrics.accuracy_list, NUM_EPOCHS, "Accuracy", 
-                f"metrics_images_square/Train_accuracy_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png")
-    #plot f1 score
-    plot_metric(train_metrics_adv.f1_list,  val_metrics.f1_list, NUM_EPOCHS, "F1_score", 
-                f"metrics_images_square/Train_F1_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png")
-    #plot precision
-    plot_metric(train_metrics_adv.precision_list,  val_metrics.precision_list, NUM_EPOCHS, "Precision",
-                f"metrics_images_square/Train_precision_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png")
-    #plot recall
-    plot_metric(train_metrics_clean.recall_list,  val_metrics.recall_list, NUM_EPOCHS, "Recall", 
-                f"metrics_images_square/Train_recall_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png")
-    #plot AUC
-    plot_roc(val_metrics.fpr, val_metrics.tpr, val_metrics.auc_list[NUM_EPOCHS-1], NUM_EPOCHS, 
-             f"metrics_images_square/Train_ROC_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}.png")
+        #plot loss
+        #plot_loss(train_metrics_clean.train_losses)
+        #plot accuracy
+        plot_metric(train_metrics_clean.accuracy_list, val_metrics.accuracy_list, NUM_EPOCHS, "Accuracy", 
+                    f"metrics_images_square/Train_accuracy_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}.png")
+        #plot f1 score
+        plot_metric(train_metrics_adv.f1_list,  val_metrics.f1_list, NUM_EPOCHS, "F1_score", 
+                    f"metrics_images_square/Train_F1_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}.png")
+        #plot precision
+        plot_metric(train_metrics_adv.precision_list,  val_metrics.precision_list, NUM_EPOCHS, "Precision",
+                    f"metrics_images_square/Train_precision_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}.png")
+        #plot recall
+        plot_metric(train_metrics_clean.recall_list,  val_metrics.recall_list, NUM_EPOCHS, "Recall", 
+                    f"metrics_images_square/Train_recall_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}.png")
+        #plot AUC
+        plot_roc(val_metrics.fpr, val_metrics.tpr, val_metrics.auc_list[NUM_EPOCHS-1], NUM_EPOCHS, 
+                 f"metrics_images_square/Train_ROC_plot_numepochs_{NUM_EPOCHS}_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}.png")
     

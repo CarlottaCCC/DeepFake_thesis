@@ -22,7 +22,7 @@ class FFDataset(Dataset):
 
         # REAL
         real_path = os.path.join(
-            root_dir, "original_sequences", "frames"
+            root_dir, "original_sequences", "youtube", "c23", "frames"
         )
         for vid in video_ids:
             # print(vid)
@@ -40,7 +40,7 @@ class FFDataset(Dataset):
 
         # FAKE
         fake_path = os.path.join(
-            root_dir, "manipulated_sequences", manipulation, "frames"
+            root_dir, "manipulated_sequences", manipulation, "c23", "frames"
         )
         for vid in video_ids:
             vid1 = vid[0]

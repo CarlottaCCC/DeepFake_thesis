@@ -22,3 +22,14 @@ Square Attack (black-box) --> https://arxiv.org/abs/1912.00049
 - salva metriche DONE
 
 - compara le metriche caso clean, res_fgsm, res_square DONE
+
+
+
+- migliora accuracy clean model -> aumenta a 10 frame per video e aumenta epochs
+- testa i modelli su altri attacchi
+- migliora prestazioni SQUARE attack
+
+OGGI
+al diag:
+trova librerie attacchi white - JSMA ????????
+

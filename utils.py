@@ -7,19 +7,38 @@ import os
 import torch
 import random
 from torch.utils.data import Subset
+from torchvision import transforms
 
 #### CONSTANTS ########
-ROOT_DIR = r"faceforensics\data5"
+ROOT_DIR = r"faceforensics\data"
+MANIPULATION = "Deepfakes"
 BATCH_SIZE = 32
-LR = 3e-4
-WD = 1e-5
-NUM_EPOCHS = 20
+LR = 1e-4
+WD = 1e-2
+NUM_EPOCHS = 5
+DROPOUT = 0.0
+LABEL_SMOOTHING = 0.0
 
-EPS = 2/255
-TEST_EPS_FGSM = 2/255
+EPS = 4/255
+TEST_EPS_FGSM = 8/255
 TEST_EPS_SQUARE = 16/255
 SQUARE_ITER = 5000
 LAMBDA_ENTROPY = 0.01
+
+# ********* WHITE BOX ATTACKS *********
+# PGD
+EPS_PGD = 8/255
+#IFGSM
+EPS_IFGSM = 8/255
+
+transform_size = transforms.Compose([
+transforms.Resize((224, 224))
+])
+
+transform_jsma = transforms.Compose([
+transforms.Resize((64, 64))
+])
+
 
 # function that counts the number of fake and real samples
 
@@ -38,6 +57,10 @@ class Metrics:
         self.y_prob = 0
         self.fpr = 0
         self.tpr = 0
+        self.total_l2 = 0
+        self.total_linf = 0
+        self.avg_l2 = 0
+        self.avg_linf = 0
         self.train_losses = []
         self.accuracy_list = []
         self.precision_list = []
@@ -103,13 +126,15 @@ class Metrics:
         # correct clean samples
         correct_clean = (pred_clean == y_true)
     
-        # successful attacks
-        successful_attacks = correct_clean & (pred_adv != y_true)
+        # successful attacks - the attack changes the prediction (in general)
+        #successful_attacks = correct_clean & (pred_adv != y_true)
+        successful_attacks = pred_adv != pred_clean
     
         if correct_clean.sum() == 0:
             return 0.0  # no division by 0
         
-        asr = successful_attacks.sum() / correct_clean.sum()
+        #asr = successful_attacks.sum() / correct_clean.sum()
+        asr = successful_attacks.sum() / len(pred_adv)
         self.asr_list.append(asr)
 
     
@@ -190,10 +215,6 @@ def freeze_bn(model):
             m.eval()
 
 
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-
 def plot_model_metrics_by_attack(
     data,
     metrics,
@@ -217,8 +238,11 @@ def plot_model_metrics_by_attack(
 
     MODEL_COLORS = {
         "Clean_Model": "#E69F00",   # arancio soft
-        "FGSM_Model": "#56B4E9",    # azzurro soft
-        "SQUARE_Model": "#009E73",  # verde soft
+        "FGSM-AT (epsilon=2/255)": "#4C78A8",    # azzurro soft
+        "FGSM-AT (epsilon=4/255)": "#6B8FB3", # blue
+        "FGSM-AT (epsilon=8/255)": "#9FBAD6", # blue
+        "SQUARE_Model_1": "#009E73",  # verde soft
+        "SQUARE_Model_2": "#009ED6"  # verde soft
     }
 
     for metric in metrics:
@@ -253,7 +277,7 @@ def plot_model_metrics_by_attack(
         plt.grid(axis="y", linestyle="--", alpha=0.6)
         plt.tight_layout()
 
-        filename = f"{metric}_by_attack.png"
+        filename = f"{metric}_by_attack_2.png"
         plt.savefig(
             os.path.join(output_dir, filename),
             dpi=dpi,
@@ -261,3 +285,51 @@ def plot_model_metrics_by_attack(
         )
 
         plt.close()
+
+
+# function to compute the average L2 and L_inf norms
+def batch_norms(delta):
+    # flatten for each sample
+    delta_flat = delta.view(delta.size(0), -1)
+
+    l2 = torch.norm(delta_flat, p=2, dim=1)      # (B,)
+    linf = torch.norm(delta_flat, p=float('inf'), dim=1)  # (B,)
+
+    return l2, linf
+
+
+def get_checkpoint(model, checkpoint_path, history_path, train_metrics, val_metrics, optimizer, device):
+    # ricarico il checkpoint
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    start_epoch = checkpoint['epoch'] # riparte dall'epoch successivo
+    print(f"Riprendo dal epoch {start_epoch}")
+    train_losses = checkpoint["train_losses"]
+
+    train_metrics.auc_list = checkpoint["train_auc"]
+    val_metrics.auc_list = checkpoint["val_auc"]
+    
+    train_metrics.tpr = checkpoint["train tpr"]
+    val_metrics.tpr = checkpoint["val tpr"]
+    
+    train_metrics.fpr = checkpoint["train fpr"]
+    val_metrics.fpr = checkpoint["val fpr"]
+
+    with open(history_path, "r") as f:
+        history = json.load(f)
+    
+    train_metrics.f1_list = history["train_f1"]
+    val_metrics.f1_list = history["val_f1"]
+    
+    train_metrics.precision_list = history["train_precision"]
+    val_metrics.precision_list = history["val_precision"]
+    
+    train_metrics.recall_list = history["train_recall"]
+    val_metrics.recall_list = history["val_recall"]
+    
+    train_metrics.accuracy_list = history["train_accuracy"]
+    val_metrics.accuracy_list = history["val_accuracy"]
+
+    return model, train_metrics, val_metrics, train_losses, start_epoch
+

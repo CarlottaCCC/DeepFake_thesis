@@ -1,0 +1,49 @@
+# Byte-compiled / Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment / virtual env
+.env/
+.venv/
+env/
+venv/
+.conda/
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+
+# Logs
+*.log
+*.out
+
+# Dataset e risultati pesanti (deep learning)
+faceforensics/
+test_results_fgsm/
+test_results_pgd/
+history/
+history_10/
+models/
+models_10/
+
+# Conda / pip environment files
+*.yml
+*.yaml
+*.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Large files / temp
+*.h5
+*.pt
+*.ckpt
+*.onnx
+*.tfrecord

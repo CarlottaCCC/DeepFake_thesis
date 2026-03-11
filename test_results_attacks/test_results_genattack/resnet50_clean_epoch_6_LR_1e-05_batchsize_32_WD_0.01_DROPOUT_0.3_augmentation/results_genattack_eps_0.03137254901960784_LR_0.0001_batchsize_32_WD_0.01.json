@@ -1,0 +1,39 @@
+{
+    "clean_auc": [
+        0.9400000000000001
+    ],
+    "genattack_auc": [
+        0.21
+    ],
+    "clean_f1": [
+        0.8571428571428571
+    ],
+    "genattack_f1": [
+        0.25
+    ],
+    "clean_precision": [
+        0.8181818181818182
+    ],
+    "genattack_precision": [
+        0.3333333333333333
+    ],
+    "clean_recall": [
+        0.9
+    ],
+    "genattack_recall": [
+        0.2
+    ],
+    "clean_accuracy": [
+        0.85
+    ],
+    "genattack_accuracy": [
+        0.4
+    ],
+    "genattack_asr": [
+        0.65
+    ],
+    "fgsm_epsilon_train": 0.00784313725490196,
+    "genattack_epsilon_test": 0.3,
+    "genattack_avg_l2": 66.8540771484375,
+    "genattack_avg_linf": 0.3000000476837158
+}
