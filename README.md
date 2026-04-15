@@ -26,9 +26,6 @@ These json files contain the coupled videos indexes [indx_1, indx_2] such that
 ## Metrics
 I have created a class that computes at each epoch accuracy, precision, recall, f1 score and ROC-AUC and saves their history through the epochs for plotting
 
-## Cropped images
-8 adversarial images skipped
-
 ## Training
 - In train_clean.py there is the clean version of the training, so with no adversarial robustness, just for the task of deep fake detection
 - In train_robust_FGSM.py performs the adversarial training on FGSM with a final loss function which includes by 50% the clean loss and by 50% the adversarial loss.
