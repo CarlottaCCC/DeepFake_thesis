@@ -14,7 +14,7 @@ class FFDataset(Dataset):
     def __init__(self, root_dir, split, transform=None, manipulation="Deepfakes"):
         self.root_dir = root_dir
         self.transform = transform
-        self.split_file = f"faceforensics/splits/{split}.json"
+        self.split_file = f"{root_dir}/splits/{split}.json"
         self.samples = []
 
         with open(self.split_file, 'r') as f:
@@ -22,7 +22,7 @@ class FFDataset(Dataset):
 
         # REAL
         real_path = os.path.join(
-            root_dir, "original_sequences", "youtube", "c23", "frames"
+            root_dir, "data", "original_sequences", "youtube", "c23", "frames"
         )
         for vid in video_ids:
             # print(vid)
@@ -40,7 +40,7 @@ class FFDataset(Dataset):
 
         # FAKE
         fake_path = os.path.join(
-            root_dir, "manipulated_sequences", manipulation, "c23", "frames"
+            root_dir, "data", "manipulated_sequences", manipulation, "c23", "frames"
         )
         for vid in video_ids:
             vid1 = vid[0]

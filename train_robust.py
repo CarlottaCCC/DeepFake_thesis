@@ -1,6 +1,6 @@
 import os
-os.environ['MPLCONFIGDIR'] = "/work/project"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+#os.environ['MPLCONFIGDIR'] = "/work/project"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 from torchvision.models import resnet50, ResNet50_Weights
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -8,11 +8,10 @@ from dataset import FFDataset
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from utils import *
 import foolbox as fb
 
-def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics, seed):
+def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed, sched_type, entropy_flag=False, has_eps_sched=False):
     train_loss = 0.0
     history = {}
     early_stopping = EarlyStopping(patience=100)
@@ -26,22 +25,25 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
     std=[1/0.229, 1/0.224, 1/0.225]
     )
     
-    type = 'None'
-    eps_scheduler = EpsilonScheduler(eps_start=0/255, eps_end=8/255, num_epochs_rampup=10, type=type)
+    eps_scheduler = EpsilonScheduler(eps_start=0/255, eps_end=8/255, num_epochs_rampup=10, type=sched_type)
+    print(f"Training with {eps_scheduler.type} epsilon scheduler")
     
 
     for epoch in range(start_epoch, num_epochs):
         #TRAINING
         model.train()
         train_loss = 0.0
-        current_eps = epsilon
-        #current_eps = eps_scheduler.get_epsilon(epoch)
+        if has_eps_sched == False:
+            current_eps = epsilon
+        else:
+            current_eps = eps_scheduler.get_epsilon(epoch)
+
         # I block update statistics of BatchNorm
         freeze_bn(model)
         train_metrics_clean.reset_epoch()
         train_metrics_adv.reset_epoch()
         val_metrics.reset_epoch()
-        print(f"Epoch {epoch+1} | eps: {epsilon:.4f}")
+        print(f"Epoch {epoch+1} | eps: {current_eps:.4f}")
 
         loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         for batch in loop:
@@ -78,7 +80,15 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
             logits_adv = model(imgs_adv) #detach
             loss_adv = criterion(logits_adv, y)
 
-            loss = 0.5 * loss_clean + 0.5 * loss_adv
+            if entropy_flag == True:
+                # compute entropy
+                entropy_clean = entropy_penalty(logits_clean)
+                entropy_adv = entropy_penalty(logits_adv)
+                # adding entropy penalty to the loss
+                loss = 0.5 * (loss_clean + loss_adv) - LAMBDA_ENTROPY * (entropy_clean + entropy_adv) / 2
+            else:
+                loss = 0.5 * loss_clean + 0.5 * loss_adv
+
             train_loss += loss.item() * imgs.size(0)
             epoch_loss = train_loss / len(train_loader.dataset)
             loss.backward()
@@ -119,7 +129,15 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
                 loss_clean = criterion(logits_clean,y)
                 logits_adv = model(normalize(imgs_adv))
                 loss_adv = criterion(logits_adv,y)
-                loss = 0.5 * loss_clean + 0.5 * loss_adv
+                if entropy_flag == True:
+                    # compute entropy
+                    entropy_clean = entropy_penalty(logits_clean)
+                    entropy_adv = entropy_penalty(logits_adv)
+                    # adding entropy penalty to the loss
+                    loss = 0.5 * (loss_clean + loss_adv) - LAMBDA_ENTROPY * (entropy_clean + entropy_adv) / 2
+                else:
+                    loss = 0.5 * loss_clean + 0.5 * loss_adv
+
                 val_loss += loss.item() * imgs.size(0)
                 epoch_val_loss = val_loss / len(val_loader.dataset)
     
@@ -148,10 +166,18 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
 
         # early stopping
         #print(f"Epoch {epoch+1} - val_loss: {epoch_val_loss:.4f}")
-        #if early_stopping(val_metrics.accuracy_list[epoch], model, optimizer, epoch, seed, eps_scheduler.type, "fgsm", train_metrics_clean, train_metrics_adv, val_metrics, train_losses, current_eps):
+        #if early_stopping(epoch_val_loss, model, optimizer, epoch, seed, eps_scheduler.type, "fgsm", train_metrics_clean, train_metrics_adv, val_metrics, train_losses, current_eps):
         #    break
 
-    save_path =  f'{MODELS_DIR}/no_eps_scheduler/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}_{eps_scheduler.type}_sched_3.pt'
+    #torch.save(model.state_dict(), save_path)  # save the best
+    if entropy_flag == True:
+        save_path =  f'{MODELS_DIR}/with_eps_scheduler/resnet50_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_seed_{seed}_{eps_scheduler.type}_sched_3.pt'
+        history_path = f"history/history_square/with_eps_scheduler/history_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_seed_{seed}_{eps_scheduler.type}_sched_3.json"
+
+    else:
+        save_path =  f'{MODELS_DIR}/with_eps_scheduler/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_seed_{seed}_{eps_scheduler.type}_sched_3.pt'
+        history_path = f"history/history_fgsm/with_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_seed_{seed}_{eps_scheduler.type}_sched_3.json"
+
     torch.save({
         'epoch': epoch + 1,
         'model_state_dict': model.state_dict(),
@@ -169,7 +195,7 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         "train_fpr_adv": train_metrics_adv.fpr,
         "val_fpr_clean": val_metrics_clean.fpr,
         "val_fpr_adv": val_metrics_adv.fpr
-    },save_path)
+    },model_path)
     # save history
     history = {
         "epoch": epoch+1,
@@ -197,7 +223,8 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         "train_asr": train_metrics_adv.asr_list,
         "train_epsilon": current_eps
     }
-    save_history_json(history,f"history/history_fgsm/no_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}_{eps_scheduler.type}_sched_3.json")
+
+    save_history_json(history, history_path)
     
 
     return train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses
@@ -316,17 +343,81 @@ if __name__ == "__main__":
 #    
         #train_metrics_adv.asr_list = history["train_asr"]
     
+        scheduler_type = ['cosine', 'linear']
         epsilons = [2/255, 8/255]
     
-        for eps in epsilons:
+        # TRAIN WITH EPSILON SCHEDULER
+        for type in scheduler_type:
             train_metrics_clean = Metrics()
             train_metrics_adv = Metrics()
-            val_metrics = Metrics()
+            val_metrics_clean = Metrics()
+            val_metrics_adv = Metrics()
+            start_epoch = 0
+            train_losses = []
+            
+            # FGSM-AT + entropy penalty
+            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
+                model=model, 
+                train_loader=train_loader, 
+                val_loader=val_loader,
+                epsilon=0,
+                start_epoch=start_epoch, 
+                num_epochs=12, 
+                optimizer=optimizer,
+                scheduler=scheduler, 
+                criterion=criterion,
+                device=device,
+                train_losses=train_losses,
+                train_metrics_clean=train_metrics_clean,
+                train_metrics_adv=train_metrics_adv,
+                val_metrics_clean=val_metrics_clean,
+                val_metrics_adv=val_metrics_adv,
+                seed=seed,
+                sched_type=type,
+                entropy_flag=True,
+                has_eps_sched=True)
+
+            train_metrics_clean = Metrics()
+            train_metrics_adv = Metrics()
+            val_metrics_clean = Metrics()
+            val_metrics_adv = Metrics()
             start_epoch = 0
             train_losses = []
 
-            print(f"Starting training with epsilon {eps}")
-            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv,tt train_losses = train_robust(
+            # FGSM-AT
+            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
+                model=model, 
+                train_loader=train_loader, 
+                val_loader=val_loader,
+                epsilon=0,
+                start_epoch=start_epoch, 
+                num_epochs=12, 
+                optimizer=optimizer,
+                scheduler=scheduler, 
+                criterion=criterion,
+                device=device,
+                train_losses=train_losses,
+                train_metrics_clean=train_metrics_clean,
+                train_metrics_adv=train_metrics_adv,
+                val_metrics_clean=val_metrics_clean,
+                val_metrics_adv=val_metrics_adv,
+                seed=seed,
+                sched_type=type,
+                entropy_flag=False,
+                has_eps_sched=True)
+
+
+        # TRAIN WITH FIXED EPSILON
+        for eps in epsilons:
+            train_metrics_clean = Metrics()
+            train_metrics_adv = Metrics()
+            val_metrics_clean = Metrics()
+            val_metrics_adv = Metrics()
+            start_epoch = 0
+            train_losses = []
+            
+            # FGSM-AT + entropy penalty
+            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
                 model=model, 
                 train_loader=train_loader, 
                 val_loader=val_loader,
@@ -340,6 +431,41 @@ if __name__ == "__main__":
                 train_losses=train_losses,
                 train_metrics_clean=train_metrics_clean,
                 train_metrics_adv=train_metrics_adv,
-                val_metrics=val_metrics,
-                seed=seed)
+                val_metrics_clean=val_metrics_clean,
+                val_metrics_adv=val_metrics_adv,
+                seed=seed,
+                sched_type='None',
+                entropy_flag=True,
+                has_eps_sched=False)
+
+            train_metrics_clean = Metrics()
+            train_metrics_adv = Metrics()
+            val_metrics_clean = Metrics()
+            val_metrics_adv = Metrics()
+            start_epoch = 0
+            train_losses = []
+
+            # FGSM-AT
+            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
+                model=model, 
+                train_loader=train_loader, 
+                val_loader=val_loader,
+                epsilon=eps,
+                start_epoch=start_epoch, 
+                num_epochs=12, 
+                optimizer=optimizer,
+                scheduler=scheduler, 
+                criterion=criterion,
+                device=device,
+                train_losses=train_losses,
+                train_metrics_clean=train_metrics_clean,
+                train_metrics_adv=train_metrics_adv,
+                val_metrics_clean=val_metrics_clean,
+                val_metrics_adv=val_metrics_adv,
+                seed=seed,
+                sched_type='None',
+                entropy_flag=False,
+                has_eps_sched=False)
+
+
         

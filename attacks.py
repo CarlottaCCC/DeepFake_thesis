@@ -16,6 +16,7 @@ from art.attacks.evasion import (
     SquareAttack,           # Square Attack
     ZooAttack              # ZOO
 )
+from attacks_implementation.autozoom_bilin import *
 
 # No NES in ART
 # No autoZOOM in ART
@@ -76,23 +77,20 @@ def get_attack_foolbox(attack_type):
        return fgsm
     elif attack_type == 'pgd':
         pgd = fb.attacks.LinfPGD(
-        steps=20,
-        rel_stepsize=2/8,
+        steps=40,
+        rel_stepsize=1/255,
         abs_stepsize=None,
         random_start=True)
         return pgd
     elif attack_type == 'ifgsm':
         ifgsm = fb.attacks.LinfPGD(
         steps=20,
-        rel_stepsize=2/8,
+        rel_stepsize=1/255,
         random_start=False)  # → with no random start PGD = IFGSM
         return ifgsm
     elif attack_type == 'genattack':
         genattack = fb.attacks.GenAttack()
         return genattack
-    elif attack_type == 'hopskipjump':
-        hopskipjump = fb.attacks.HopSkipJumpAttack()
-        return hopskipjump
         
        
     
@@ -109,14 +107,37 @@ def get_attack_art(attack_type, classifier):
     elif attack_type == 'zoo': # ZOO is very slow, needs less images to be tested on
         zoo = ZooAttack(
             classifier=classifier,
-            targeted=True,        # False = untargeted
-            max_iter=50,          # Numero massimo di iterazioni
+            targeted=False,        # False = untargeted
+            max_iter=200,          # Numero massimo di iterazioni
             confidence=0.0,        # Parametro di ottimizzazione
             learning_rate=0.01,    # Step size
-            binary_search_steps=1, # Numero di ricerche per trovare il miglior perturbation
-            initial_const=1e-2,    # Costante iniziale
+            binary_search_steps=5, # Numero di ricerche per trovare il miglior perturbation
+            initial_const=1e-1,    # Costante iniziale
             abort_early=True,
+            use_resize=True
         )
         return zoo
+    elif attack_type == 'jsma':
+        jsma = SaliencyMapMethod(classifier=classifier, batch_size=64)
+        return jsma
+
+    elif attack_type == 'autozoom':
+        autozoom = AutoZoomBilin(
+        estimator=classifier,
+        max_iter=500,
+        learning_rate=1e-2,
+        binary_search_steps=5,
+        init_const=1.0,
+        confidence=0.0,
+        targeted=False,         # True se vuoi un attacco mirato
+        reduce_factor=4,        # 224→56 nello spazio ridotto (~16x meno coord.)
+        num_random_vecs=1,      # 1 per efficienza; aumenta per stime più accurate
+        h=1e-4,
+        clip_min=0.0,
+        clip_max=1.0,
+        verbose=100,
+    )
+        return autozoom
+ 
 
 
