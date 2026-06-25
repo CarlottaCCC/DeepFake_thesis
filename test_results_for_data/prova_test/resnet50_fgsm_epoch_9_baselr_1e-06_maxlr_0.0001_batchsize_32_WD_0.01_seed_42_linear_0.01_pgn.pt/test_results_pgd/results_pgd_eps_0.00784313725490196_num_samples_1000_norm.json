@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + pgn (linear epsilon scheduler)": {
+        "PGD": {
+            "accuracy": 0.755,
+            "attack_success_rate": 0.057,
+            "AUC_score": 0.812
+        }
+    }
+}

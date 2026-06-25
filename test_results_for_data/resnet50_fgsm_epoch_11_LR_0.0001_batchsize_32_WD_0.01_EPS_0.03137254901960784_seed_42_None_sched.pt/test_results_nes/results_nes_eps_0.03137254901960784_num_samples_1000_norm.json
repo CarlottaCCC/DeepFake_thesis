@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (eps=8/255)": {
+        "NES": {
+            "accuracy": 0.675,
+            "attack success rate": 0.276,
+            "AUC score": 0.763
+        }
+    }
+}

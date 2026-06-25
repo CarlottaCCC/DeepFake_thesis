@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (cosine epsilon scheduler)": {
+        "GenAttack": {
+            "accuracy": 0.139,
+            "attack success rate": 0.753,
+            "AUC score": 0.236
+        }
+    }
+}

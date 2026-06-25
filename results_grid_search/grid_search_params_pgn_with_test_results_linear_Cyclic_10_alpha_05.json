@@ -1,0 +1,222 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.0001
+        },
+        "val_clean_acc": 0.8178571428571428,
+        "val_adv_acc": 0.3175,
+        "test_clean_acc": 0.794,
+        "test_fgsm_small_acc": 0.41,
+        "test_fgsm_big_acc": 0.313,
+        "test_ifgsm_big_acc": 0.611,
+        "test_pgd_big_acc": 0.417,
+        "status": "ok"
+    },
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.001
+        },
+        "val_clean_acc": 0.835,
+        "val_adv_acc": 0.27714285714285714,
+        "test_clean_acc": 0.816,
+        "test_fgsm_small_acc": 0.459,
+        "test_fgsm_big_acc": 0.263,
+        "test_ifgsm_big_acc": 0.643,
+        "test_pgd_big_acc": 0.473,
+        "status": "ok"
+    },
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.01
+        },
+        "val_clean_acc": 0.5,
+        "val_adv_acc": 0.48428571428571426,
+        "test_clean_acc": 0.5,
+        "test_fgsm_small_acc": 0.465,
+        "test_fgsm_big_acc": 0.479,
+        "test_ifgsm_big_acc": 0.453,
+        "test_pgd_big_acc": 0.068,
+        "status": "ok"
+    },
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.1
+        },
+        "val_clean_acc": 0.8328571428571429,
+        "val_adv_acc": 0.2671428571428571,
+        "test_clean_acc": 0.825,
+        "test_fgsm_small_acc": 0.469,
+        "test_fgsm_big_acc": 0.246,
+        "test_ifgsm_big_acc": 0.67,
+        "test_pgd_big_acc": 0.486,
+        "status": "ok"
+    },
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.0001
+        },
+        "val_clean_acc": 0.9053571428571429,
+        "val_adv_acc": 0.8578571428571429,
+        "test_clean_acc": 0.863,
+        "test_fgsm_small_acc": 0.35,
+        "test_fgsm_big_acc": 0.874,
+        "test_ifgsm_big_acc": 0.663,
+        "test_pgd_big_acc": 0.323,
+        "status": "ok"
+    },
+    {
+        "params": { ***
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.001
+        },
+        "val_clean_acc": 0.8435714285714285,
+        "val_adv_acc": 0.3003571428571429,
+        "test_clean_acc": 0.804,
+        "test_fgsm_small_acc": 0.462,
+        "test_fgsm_big_acc": 0.28,
+        "test_ifgsm_big_acc": 0.659,
+        "test_pgd_big_acc": 0.492,
+        "status": "ok"
+    },
+    {
+        "params": { ***
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.01
+        },
+        "val_clean_acc": 0.8282142857142857,
+        "val_adv_acc": 0.3871428571428571,
+        "test_clean_acc": 0.799,
+        "test_fgsm_small_acc": 0.4,
+        "test_fgsm_big_acc": 0.401,
+        "test_ifgsm_big_acc": 0.628,
+        "test_pgd_big_acc": 0.402,
+        "status": "ok"
+    },
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.1
+        },
+        "val_clean_acc": 0.8157142857142857,
+        "val_adv_acc": 0.6032142857142857,
+        "test_clean_acc": 0.805,
+        "test_fgsm_small_acc": 0.403,
+        "test_fgsm_big_acc": 0.571,
+        "test_ifgsm_big_acc": 0.545,
+        "test_pgd_big_acc": 0.245,
+        "status": "ok"
+    },
+    {
+        "params": { ***
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.0001
+        },
+        "val_clean_acc": 0.8653571428571428,
+        "val_adv_acc": 0.44892857142857145,
+        "test_clean_acc": 0.852,
+        "test_fgsm_small_acc": 0.464,
+        "test_fgsm_big_acc": 0.45,
+        "test_ifgsm_big_acc": 0.647,
+        "test_pgd_big_acc": 0.385,
+        "status": "ok"
+    },
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.001
+        },
+        "val_clean_acc": 0.5085714285714286,
+        "val_adv_acc": 1.0,
+        "test_clean_acc": 0.519,
+        "test_fgsm_small_acc": 0.499,
+        "test_fgsm_big_acc": 1.0,
+        "test_ifgsm_big_acc": 0.237,
+        "test_pgd_big_acc": 0.383,
+        "status": "ok"
+    },
+    {
+        "params": { ***
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.01
+        },
+        "val_clean_acc": 0.8389285714285715,
+        "val_adv_acc": 0.2925,
+        "test_clean_acc": 0.812,
+        "test_fgsm_small_acc": 0.504,
+        "test_fgsm_big_acc": 0.277,
+        "test_ifgsm_big_acc": 0.673,
+        "test_pgd_big_acc": 0.525,
+        "status": "ok"
+    }
+]

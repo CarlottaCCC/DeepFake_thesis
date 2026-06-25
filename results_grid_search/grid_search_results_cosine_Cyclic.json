@@ -1,0 +1,242 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-06,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.3482142857142857,
+        "val_adv_acc": 0.9153571428571429
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-06,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.36464285714285716,
+        "val_adv_acc": 0.9157142857142857
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-06,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.3603571428571429,
+        "val_adv_acc": 0.9157142857142857
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-06,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.3725,
+        "val_adv_acc": 0.9160714285714285
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.42714285714285716, 
+        "val_adv_acc": 0.9128571428571428
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.4182142857142857,
+        "val_adv_acc": 0.9092857142857143
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.42142857142857143,
+        "val_adv_acc": 0.9128571428571428
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.4253571428571429,
+        "val_adv_acc": 0.9110714285714285
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-06,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.17892857142857144,
+        "val_adv_acc": 0.9003571428571429
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-06,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.21892857142857142,
+        "val_adv_acc": 0.9017857142857143
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-06,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.21214285714285713,
+        "val_adv_acc": 0.9003571428571429
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-06,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.18642857142857142,
+        "val_adv_acc": 0.8989285714285714
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.42642857142857143,
+        "val_adv_acc": 0.9053571428571429
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.4225,
+        "val_adv_acc": 0.9078571428571428
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-05,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.42678571428571427, 
+        "val_adv_acc": 0.9121428571428571
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-05,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.425,
+        "val_adv_acc": 0.9078571428571428
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-07,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.1392857142857143,
+        "val_adv_acc": 0.9153571428571429
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-07,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.1392857142857143,
+        "val_adv_acc": 0.9153571428571429
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-07,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.14035714285714285,
+        "val_adv_acc": 0.915
+    },
+    {
+        "params": {
+            "base_lr": 1e-08,
+            "max_lr": 1e-07,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.13964285714285715,
+        "val_adv_acc": 0.915
+    }
+]

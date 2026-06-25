@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (adaptive linear scheduler)": {
+        "IFGSM": {
+            "accuracy": 0.681,
+            "attack_success_rate": 0.143,
+            "AUC_score": 0.727
+        }
+    }
+}

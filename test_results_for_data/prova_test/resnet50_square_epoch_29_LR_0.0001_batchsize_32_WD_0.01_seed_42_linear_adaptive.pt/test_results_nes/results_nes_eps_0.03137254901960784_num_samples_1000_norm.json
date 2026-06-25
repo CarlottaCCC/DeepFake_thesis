@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (adaptive linear scheduler)": {
+        "NES": {
+            "accuracy": 0.811,
+            "attack_success_rate": 0.028,
+            "AUC_score": 0.907
+        }
+    }
+}

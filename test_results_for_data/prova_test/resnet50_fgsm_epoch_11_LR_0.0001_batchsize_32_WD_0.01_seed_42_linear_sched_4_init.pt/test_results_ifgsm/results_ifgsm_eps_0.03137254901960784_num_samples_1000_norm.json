@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (linear epsilon scheduler)": {
+        "IFGSM": {
+            "accuracy": 0.638,
+            "attack_success_rate": 0.144,
+            "AUC_score": 0.706
+        }
+    }
+}

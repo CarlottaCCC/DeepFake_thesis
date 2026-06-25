@@ -1,0 +1,9 @@
+{
+    "Clean model": {
+        "IFGSM": {
+            "accuracy": 0.143,
+            "attack success rate": 0.759,
+            "AUC score": 0.068
+        }
+    }
+}

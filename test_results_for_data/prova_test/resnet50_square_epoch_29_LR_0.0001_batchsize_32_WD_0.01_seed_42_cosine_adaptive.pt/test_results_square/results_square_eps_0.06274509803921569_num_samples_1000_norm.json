@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (adaptive cosine scheduler)": {
+        "SQUARE (1000 iterations, eps=16/255)": {
+            "accuracy": 0.071,
+            "attack_success_rate": 0.757,
+            "AUC_score": 0.068
+        }
+    }
+}

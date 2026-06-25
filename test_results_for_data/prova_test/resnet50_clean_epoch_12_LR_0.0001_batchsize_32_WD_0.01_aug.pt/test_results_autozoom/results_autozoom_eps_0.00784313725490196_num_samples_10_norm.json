@@ -1,0 +1,9 @@
+{
+    "Clean Model": {
+        "AutoZOOM": {
+            "accuracy": 0.0,
+            "attack_success_rate": 0.8,
+            "AUC_score": 0.0
+        }
+    }
+}

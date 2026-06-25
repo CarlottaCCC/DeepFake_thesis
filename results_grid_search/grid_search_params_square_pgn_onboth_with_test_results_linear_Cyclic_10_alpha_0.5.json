@@ -1,0 +1,22 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 16,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.01
+        },
+        "val_clean_acc": 0.8167857142857143,
+        "val_adv_acc": 0.31642857142857145,
+        "test_clean_acc": 0.774,
+        "test_fgsm_small_acc": 0.425,
+        "test_fgsm_big_acc": 0.336,
+        "test_ifgsm_big_acc": 0.613,
+        "test_pgd_big_acc": 0.44,
+        "status": "ok"
+    }
+]

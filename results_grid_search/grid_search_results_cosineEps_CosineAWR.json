@@ -1,0 +1,46 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.19678571428571429,
+        "val_adv_acc": 0.9060714285714285
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.195,
+        "val_adv_acc": 0.905
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.0001
+        },
+        "val_clean_acc": 0.19607142857142856,
+        "val_adv_acc": 0.9060714285714285
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "weight_decay": 0.01,
+            "batch_size": 32,
+            "step_size_up": 1,
+            "lambda_entropy": 0.01
+        },
+        "val_clean_acc": 0.19357142857142856,
+        "val_adv_acc": 0.9060714285714285
+    }
+]

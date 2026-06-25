@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (eps=2/255)": {
+        "ZOO": {
+            "accuracy": 0.94,
+            "attack success rate": 0.05,
+            "AUC score": 0.962
+        }
+    }
+}

@@ -1,0 +1,40 @@
+{
+    "number_of_samples": 1000,
+    "clean_auc": [
+        0.93631
+    ],
+    "pgd_auc": [
+        0.11193000000000002
+    ],
+    "clean_f1": [
+        0.863773965691221
+    ],
+    "pgd_f1": [
+        0.3883495145631068
+    ],
+    "clean_precision": [
+        0.8716904276985743
+    ],
+    "pgd_precision": [
+        0.32608695652173914
+    ],
+    "clean_recall": [
+        0.856
+    ],
+    "pgd_recall": [
+        0.48
+    ],
+    "clean_accuracy": [
+        0.865
+    ],
+    "pgd_accuracy": [
+        0.244
+    ],
+    "pgd_asr": [
+        0.621
+    ],
+    "fgsm_epsilon_train": 0.01568627450980392,
+    "pgd_epsilon_test": 0.03137254901960784,
+    "pgd_avg_l2": 6.989451690673828,
+    "pgd_avg_linf": 0.03137257695198059
+}

@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (eps=8/255)": {
+        "IFGSM": {
+            "accuracy": 0.117,
+            "attack_success_rate": 0.777,
+            "AUC_score": 0.042
+        }
+    }
+}

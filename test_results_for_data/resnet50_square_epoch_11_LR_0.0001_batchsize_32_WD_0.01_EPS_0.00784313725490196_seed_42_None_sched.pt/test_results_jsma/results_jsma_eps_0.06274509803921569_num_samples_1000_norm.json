@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (eps=2/255)": {
+        "JSMA": {
+            "accuracy": 0.0,
+            "attack success rate": 0.841,
+            "AUC score": 0.0
+        }
+    }
+}

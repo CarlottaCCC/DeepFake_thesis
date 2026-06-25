@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (eps=8/255)": {
+        "JSMA": {
+            "accuracy": 0.0,
+            "attack success rate": 0.872,
+            "AUC score": 0.0
+        }
+    }
+}

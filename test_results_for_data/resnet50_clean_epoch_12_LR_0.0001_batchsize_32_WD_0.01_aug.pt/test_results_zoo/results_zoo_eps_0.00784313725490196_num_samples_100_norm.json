@@ -1,0 +1,9 @@
+{
+    "Clean model": {
+        "ZOO": {
+            "accuracy": 0.92,
+            "attack success rate": 0.1,
+            "AUC score": 0.939
+        }
+    }
+}

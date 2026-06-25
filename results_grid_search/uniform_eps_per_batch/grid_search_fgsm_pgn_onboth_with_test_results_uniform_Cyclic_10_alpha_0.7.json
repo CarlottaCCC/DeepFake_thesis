@@ -1,0 +1,25 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 16,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.01
+        },
+        "val_clean_acc": 0.9210714285714285,
+        "val_adv_acc": 0.9614285714285714,
+        "test_clean_acc": 0.895,
+        "test_fgsm_small_acc": 0.875,
+        "test_fgsm_big_acc": 0.963,
+        "test_ifgsm_big_acc": 0.161,
+        "test_pgd_big_acc": 0.0,
+        "alpha_adv": 0.7,
+        "training": "FGSM-AT",
+        "pgn": "clean + adv",
+        "status": "ok"
+    }
+]

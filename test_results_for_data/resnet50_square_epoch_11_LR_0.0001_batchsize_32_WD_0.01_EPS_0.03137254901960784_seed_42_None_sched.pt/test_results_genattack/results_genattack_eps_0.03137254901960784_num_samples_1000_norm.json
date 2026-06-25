@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (eps=8/255)": {
+        "GenAttack": {
+            "accuracy": 0.082,
+            "attack success rate": 0.759,
+            "AUC score": 0.048
+        }
+    }
+}

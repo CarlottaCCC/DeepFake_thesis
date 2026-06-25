@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (cosine scheduler)": {
+        "IFGSM": {
+            "accuracy": 0.33,
+            "attack success rate": 0.574,
+            "AUC score": 0.274
+        }
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (eps=2/255)": {
+        "SQUARE (1000 iterations, eps=16/255)": {
+            "accuracy": 0.0,
+            "attack_success_rate": 0.906,
+            "AUC_score": 0.0
+        }
+    }
+}

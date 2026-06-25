@@ -1,0 +1,74 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 2,
+            "lambda_entropy": 0.0001,
+            "num_epochs_per_eps": 2
+        },
+        "val_clean_acc": 0.9125,
+        "val_adv_acc": 0.7810714285714285,
+        "test_clean_acc": 0.865,
+        "test_fgsm_small_acc": 0.352,
+        "test_fgsm_big_acc": 0.736,
+        "test_ifgsm_big_acc": 0.488,
+        "test_pgd_big_acc": 0.086
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 2,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 2
+        },
+        "val_clean_acc": 0.9064285714285715,
+        "val_adv_acc": 0.8267857142857142,
+        "test_clean_acc": 0.858,
+        "test_fgsm_small_acc": 0.385,
+        "test_fgsm_big_acc": 0.826,
+        "test_ifgsm_big_acc": 0.446,
+        "test_pgd_big_acc": 0.037
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 2,
+            "lambda_entropy": 0.01,
+            "num_epochs_per_eps": 2
+        },
+        "val_clean_acc": 0.9142857142857143,
+        "val_adv_acc": 0.8685714285714285,
+        "test_clean_acc": 0.867,
+        "test_fgsm_small_acc": 0.322,
+        "test_fgsm_big_acc": 0.863,
+        "test_ifgsm_big_acc": 0.46,
+        "test_pgd_big_acc": 0.058
+    },
+    {
+        "params": {
+            "base_lr": 1e-07,
+            "max_lr": 1e-05,
+            "weight_decay": 0.0001,
+            "batch_size": 32,
+            "step_size_up": 2,
+            "lambda_entropy": 0.1,
+            "num_epochs_per_eps": 2
+        },
+        "val_clean_acc": 0.9178571428571428,
+        "val_adv_acc": 0.8582142857142857,
+        "test_clean_acc": 0.864,
+        "test_fgsm_small_acc": 0.378,
+        "test_fgsm_big_acc": 0.832,
+        "test_ifgsm_big_acc": 0.4,
+        "test_pgd_big_acc": 0.027
+    }
+]

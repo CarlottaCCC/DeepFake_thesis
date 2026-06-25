@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (adaptive cosine scheduler)": {
+        "JSMA": {
+            "accuracy": 0.001,
+            "attack_success_rate": 0.819,
+            "AUC_score": 0.002
+        }
+    }
+}

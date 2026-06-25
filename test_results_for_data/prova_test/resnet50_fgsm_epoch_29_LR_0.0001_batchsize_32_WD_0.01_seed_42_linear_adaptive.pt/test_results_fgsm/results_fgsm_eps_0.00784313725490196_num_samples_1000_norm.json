@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (adaptive linear scheduler)": {
+        "FGSM (eps=2/255)": {
+            "accuracy": 0.508,
+            "attack_success_rate": 0.316,
+            "AUC_score": 0.449
+        }
+    }
+}

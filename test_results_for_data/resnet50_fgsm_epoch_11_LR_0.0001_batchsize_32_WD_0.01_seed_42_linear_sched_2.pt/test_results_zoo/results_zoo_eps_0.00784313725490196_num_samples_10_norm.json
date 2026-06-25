@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (linear epsilon scheduler)": {
+        "ZOO": {
+            "accuracy": 0.3,
+            "attack_success_rate": 0.7,
+            "AUC_score": 0.08
+        }
+    }
+}

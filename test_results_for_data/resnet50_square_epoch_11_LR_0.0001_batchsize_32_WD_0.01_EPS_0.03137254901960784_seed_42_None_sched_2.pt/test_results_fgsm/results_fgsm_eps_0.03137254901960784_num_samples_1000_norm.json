@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (eps=8/255)": {
+        "FGSM (eps=8/255)": {
+            "accuracy": 0.403,
+            "attack success rate": 0.448,
+            "AUC score": 0.255
+        }
+    }
+}

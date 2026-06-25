@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (adaptive eps scheduler)": {
+        "FGSM (eps=2/255)": {
+            "accuracy": 0.15,
+            "attack_success_rate": 0.757,
+            "AUC_score": 0.092
+        }
+    }
+}

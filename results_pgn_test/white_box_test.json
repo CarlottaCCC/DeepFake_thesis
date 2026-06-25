@@ -1,0 +1,41 @@
+[
+    {
+        "FGSM-AT + pgn (linear epsilon scheduler)": {
+            "No_attack": {
+                "accuracy": 0.812,
+                "attack_success_rate": 0,
+                "AUC_score": 0.88764
+            },
+            "FGSM (eps=2/255)": {
+                "accuracy": 0.492,
+                "attack_success_rate": 0.32,
+                "AUC_score": 0.47148999999999996
+            },
+            "FGSM (eps=8/255)": {
+                "accuracy": 0.239,
+                "attack_success_rate": 0.575,
+                "AUC_score": 0.145528
+            },
+            "IFGSM (eps=2/255)": {
+                "accuracy": 0.781,
+                "attack_success_rate": 0.031,
+                "AUC_score": 0.85119
+            },
+            "IFGSM (eps=8/255)": {
+                "accuracy": 0.671,
+                "attack_success_rate": 0.141,
+                "AUC_score": 0.717158
+            },
+            "PGD (eps=2/255)": {
+                "accuracy": 0.755,
+                "attack_success_rate": 0.057,
+                "AUC_score": 0.812076
+            },
+            "PGD (eps=8/255)": {
+                "accuracy": 0.522,
+                "attack_success_rate": 0.29,
+                "AUC_score": 0.50358
+            }
+        }
+    }
+]

@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (cosine epsilon scheduler)": {
+        "SQUARE (1000 iterations, eps=16/255)": {
+            "accuracy": 0.056,
+            "attack_success_rate": 0.785,
+            "AUC_score": 0.047
+        }
+    }
+}

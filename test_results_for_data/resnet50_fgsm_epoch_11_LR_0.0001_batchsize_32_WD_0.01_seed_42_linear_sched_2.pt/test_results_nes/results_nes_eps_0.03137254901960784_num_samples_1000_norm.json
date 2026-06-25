@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (linear epsilon scheduler)": {
+        "NES": {
+            "accuracy": 0.614,
+            "attack success rate": 0.339,
+            "AUC score": 0.682
+        }
+    }
+}

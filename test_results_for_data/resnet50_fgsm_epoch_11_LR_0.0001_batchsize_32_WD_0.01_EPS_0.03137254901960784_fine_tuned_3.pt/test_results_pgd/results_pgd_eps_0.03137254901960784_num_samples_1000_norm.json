@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (eps=8/255)": {
+        "PGD": {
+            "accuracy": 0.013,
+            "attack success rate": 0.859,
+            "AUC score": 0.001
+        }
+    }
+}

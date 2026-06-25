@@ -1,0 +1,16 @@
+{
+    "FGSM-AT (eps=8/255)": {
+        "FGSM (eps=4/255)": {
+            "accuracy": 0.937,
+            "attack_success_rate": 0.159,
+            "AUC_score": 0.991
+        }
+    },
+    "FGSM-AT (eps=8/255) 3": {
+        "FGSM (eps=4/255)": {
+            "accuracy": 0.937,
+            "attack_success_rate": 0.159,
+            "AUC_score": 0.991
+        }
+    }
+}

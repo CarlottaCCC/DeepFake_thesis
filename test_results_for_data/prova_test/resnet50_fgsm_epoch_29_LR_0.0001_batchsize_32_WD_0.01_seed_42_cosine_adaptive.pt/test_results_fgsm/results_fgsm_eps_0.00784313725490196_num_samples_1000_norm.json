@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (adaptive cosine scheduler)": {
+        "FGSM (eps=2/255)": {
+            "accuracy": 0.54,
+            "attack_success_rate": 0.284,
+            "AUC_score": 0.383
+        }
+    }
+}

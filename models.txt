@@ -1,0 +1,25 @@
+
+CLEAN:
+resnet50_clean_epoch_12_LR_0.0001_batchsize_32_WD_0.01_DROPOUT_0.0_aug.pt
+
+FGSM-AT eps=2/255
+resnet50_fgsm_epoch_2_LR_0.0001_batchsize_32_WD_0.01_EPS_0.00784313725490196_seed_42_None_sched.pt
+
+FGSM-AT eps=8/255
+resnet50_fgsm_epoch_0_LR_0.0001_batchsize_32_WD_0.01_EPS_0.03137254901960784_seed_42_None_sched.pt
+
+FGSM-AT with linear epsilon scheduler (eps form 0 to 8/255)
+
+FGSM with cosine epsilon scheduler (eps form 0 to 8/255)
+
+
+
+
+MODELLI VECCHI
+models = [
+        'resnet50_clean_epoch_12_LR_0.0001_batchsize_32_WD_0.01_aug.pt',
+        'resnet50_fgsm_epoch_14_LR_0.0001_batchsize_32_WD_0.01_EPS_0.00784313725490196_fine_tuned.pt',
+        'resnet50_fgsm_epoch_16_LR_0.0001_batchsize_32_WD_0.01_EPS_0.03137254901960784_fine_tuned.pt',
+        'resnet50_square_epoch_18_LR_0.0001_batchsize_32_WD_0.01_EPS_0.00784313725490196.pt',
+        'resnet50_square_epoch_13_LR_0.0001_batchsize_32_WD_0.01_EPS_0.03137254901960784.pt'
+    ]

@@ -1,0 +1,55 @@
+{
+    "epoch": 1,
+    "train_losses": [
+        0.02411538880974073
+    ],
+    "train_auc_clean": [
+        0.9995583140432099
+    ],
+    "train_auc_adv": [
+        0.9995583140432099
+    ],
+    "val_auc": [
+        0.668319387755102
+    ],
+    "train_f1_clean": [
+        0.9915861205757597
+    ],
+    "train_f1_adv": [
+        0.9915861205757597
+    ],
+    "val_f1": [
+        0.44465558194774346
+    ],
+    "train_precision_clean": [
+        0.9928979250800725
+    ],
+    "train_precision_adv": [
+        0.9928979250800725
+    ],
+    "val_precision": [
+        0.6638297872340425
+    ],
+    "train_recall_clean": [
+        0.9902777777777778
+    ],
+    "train_recall_adv": [
+        0.9902777777777778
+    ],
+    "val_recall": [
+        0.3342857142857143
+    ],
+    "train_accuracy_clean": [
+        0.9915972222222222
+    ],
+    "train_accuracy_adv": [
+        0.9915972222222222
+    ],
+    "val_accuracy": [
+        0.5825
+    ],
+    "train_asr": [
+        0.0
+    ],
+    "train_epsilon": 0.0
+}

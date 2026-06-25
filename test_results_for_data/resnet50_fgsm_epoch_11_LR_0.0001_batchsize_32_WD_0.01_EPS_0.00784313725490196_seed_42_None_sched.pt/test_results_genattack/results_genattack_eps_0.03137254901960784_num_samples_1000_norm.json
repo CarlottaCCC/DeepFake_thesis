@@ -1,0 +1,9 @@
+{
+    "FGSM-AT (eps=2/255)": {
+        "GenAttack": {
+            "accuracy": 0.051,
+            "attack success rate": 0.851,
+            "AUC score": 0.076
+        }
+    }
+}

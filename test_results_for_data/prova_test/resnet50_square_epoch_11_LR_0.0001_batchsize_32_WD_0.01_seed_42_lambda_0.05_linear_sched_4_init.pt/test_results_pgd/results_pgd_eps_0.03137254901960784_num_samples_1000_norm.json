@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (linear epsilon scheduler)": {
+        "PGD": {
+            "accuracy": 0.01,
+            "attack_success_rate": 0.89,
+            "AUC_score": 0.0
+        }
+    }
+}

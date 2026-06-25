@@ -1,0 +1,9 @@
+{
+    "Clean model": {
+        "NES": {
+            "accuracy": 0.56,
+            "attack success rate": 0.38,
+            "AUC score": 0.709
+        }
+    }
+}

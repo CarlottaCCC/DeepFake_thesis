@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (eps=8/255)": {
+        "NES": {
+            "accuracy": 0.797,
+            "attack success rate": 0.194,
+            "AUC score": 0.848
+        }
+    }
+}

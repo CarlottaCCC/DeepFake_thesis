@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (cosine epsilon scheduler)": {
+        "AutoZOOM": {
+            "accuracy": 0.0,
+            "attack_success_rate": 1.0,
+            "AUC_score": 0.0
+        }
+    }
+}

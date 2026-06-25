@@ -1,0 +1,9 @@
+{
+    "FGSM-AT + entropy (linear epsilon scheduler)": {
+        "JSMA": {
+            "accuracy": 0.0,
+            "attack_success_rate": 0.84,
+            "AUC_score": 0.0
+        }
+    }
+}
