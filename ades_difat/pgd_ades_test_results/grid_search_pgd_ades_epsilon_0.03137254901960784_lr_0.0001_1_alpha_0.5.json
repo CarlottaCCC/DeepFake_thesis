@@ -1,0 +1,36 @@
+[
+    {
+        "params": {
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "batch_size": 32
+        },
+        "val_clean_acc": 0.915,
+        "val_adv_acc": 0.0014285714285714286,
+        "test_clean_acc": 0.997,
+        "test_clean_auc": 1.0,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.11,
+        "test_fgsm_small_auc": 0.026808000000000005,
+        "test_fgsm_small_asr": 0.887,
+        "test_fgsm_big_acc": 0.2,
+        "test_fgsm_big_auc": 0.112292,
+        "test_fgsm_big_asr": 0.797,
+        "test_ifgsm_small_acc": 0.0,
+        "test_ifgsm_small_auc": 0.0,
+        "test_ifgsm_small_asr": 0.997,
+        "test_ifgsm_big_acc": 0.0,
+        "test_ifgsm_big_auc": 0.0,
+        "test_ifgsm_big_asr": 0.997,
+        "test_pgd_small_acc": 0.0,
+        "test_pgd_small_auc": 0.0,
+        "test_pgd_small_asr": 0.997,
+        "test_pgd_big_acc": 0.0,
+        "test_pgd_big_auc": 0.0,
+        "test_pgd_big_asr": 0.997,
+        "epoch_total_times": [
+            278.31787074916065
+        ],
+        "status": "ok"
+    }
+]

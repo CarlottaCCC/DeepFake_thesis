@@ -17,6 +17,23 @@ from attacks_implementation.jsma_accurate import tjsma_binary, wjsma_binary, wjs
 from attacks_implementation.autozoom import AutoZOOMAttack
 from attacks_implementation.ifgsm import ifgsm_attack
 
+def standard_pgd_attack(model, x, y, eps, alpha, steps, normalize, clamp_min=0.0, clamp_max=1.0):
+    """Your existing fixed-epsilon PGD-AT attack, as the baseline mode."""
+    delta = torch.empty_like(x).uniform_(-eps, eps)
+    delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
+    delta = delta.detach().requires_grad_(True)
+ 
+    for _ in range(steps):
+        logits = model(normalize(x + delta))
+        loss = F.cross_entropy(logits, y)
+        grad = torch.autograd.grad(loss, delta)[0]
+        delta = delta.detach() + alpha * grad.sign()
+        delta = torch.clamp(delta, -eps, eps)
+        delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
+        delta.requires_grad_(True)
+ 
+    return torch.clamp(x + delta.detach(), clamp_min, clamp_max)
+
 
 def test_attack(model, test_loader, attack_type, epsilon, library, model_name, model_data, attack_label_data, device, save_results=True):
 
@@ -71,10 +88,17 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
         #    #imgs_adv = torch.clamp(imgs_adv, 0, 1)
         #    imgs_adv = torch.clamp(imgs_adv, imgs - epsilon, imgs + epsilon)
 
+        if attack_type == 'rs_fgsm' and library == 'None':
+            imgs_adv = rs_fgsm(epsilon, model, imgs, labels)
+
+        if attack_type == 'pgd' and library == 'None':
+            imgs_adv = standard_pgd_attack(model, imgs.detach(), labels, epsilon, alpha=2/255, steps=20, normalize=normalize)
+            imgs_adv = normalize(imgs_adv.detach())
         if library == 'foolbox' and attack_type != 'genattack':
             attack_fn = get_attack_foolbox(attack_type)
             eps = epsilon
             _, imgs_adv, _ = attack_fn(fmodel, imgs, labels, epsilons=eps)
+            imgs_adv = normalize(imgs_adv.detach())
         elif library == 'art' and (attack_type!= 'jsma'):
             attack_fn = get_attack_art(attack_type, classifier)
             print(classifier._device)
@@ -82,11 +106,13 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
             imgs_adv = attack_fn.generate(x=imgs.cpu().numpy(), y=labels.cpu().numpy())
             # ART returns numpy, need to convert imgs_square to tensor to pass it to the model
             imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
+            imgs_adv = normalize(imgs_adv.detach())
         elif library == 'art' and (attack_type == 'jsma'):
             attack_fn = get_attack_art(attack_type, classifier)
             target_labels = 1 - labels
             imgs_adv = attack_fn.generate(x=imgs.cpu().numpy(), y=target_labels.cpu().numpy())
             # ART returns numpy, need to convert imgs_square to tensor to pass it to the model
+            imgs_adv = normalize(imgs_adv.detach())
             imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
         elif library == 'foolbox' and attack_type == 'genattack':
             # CHIAVE: Crea target labels (classe opposta per classificazione binaria)
@@ -96,50 +122,14 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
             attack_fn = get_attack_foolbox(attack_type)
             eps = epsilon
             _, imgs_adv, _ = attack_fn(fmodel, imgs, criterion, epsilons=eps)
+            imgs_adv = normalize(imgs_adv.detach())
 
         elif attack_type == 'nes' and library == 'None':
             imgs_adv = nes_attack(model, imgs, labels, device=device)
+            imgs_adv = normalize(imgs_adv.detach())
 
-        #elif attack_type == 'tjsma':
-        #    adv_list = []
-        #    target_labels = 1 - labels
-        #    imgs_adv = torch.zeros_like(imgs)
-        #    for i in range(imgs.size(0)):
-        #        x_adv = tjsma_binary(model, imgs[i], target_labels[i], max_iter=300, theta=0.05)
-        #        imgs_adv[i] = x_adv
-
-            # since tjsma binary returns image.detach().squeeze(0) the output has dimention [3,244,244]
-            # so with torch.stack I add one dimension creating a batch [32,3,224,224]
-            #imgs_adv = torch.stack(adv_list, dim=0) 
-            #adv_list = []
-
-        #elif attack_type == 'wjsma':
-        #    target_labels = 1 - labels
-        #    imgs_adv = torch.zeros_like(imgs)
-        #    for i in range(imgs.size(0)):
-        #        x_adv = wjsma_binary(model, imgs[i], target_labels[i], max_iter=300, theta=0.05)
-        #        imgs_adv[i] = x_adv
-
-            #imgs_adv = torch.stack(adv_list, dim=0)
-            #adv_list = []
-            #imgs_adv[i] = x_adv
-
-        #elif attack_type == 'nes' and library == 'None':
-        #    attack_fn = get_attack(attack_type, model)
-        #    target_labels = torch.zeros_like(1-labels)
-        #    t_labels = 1-labels
-        #    imgs_adv = attack_fn(
-        #    images=imgs,
-        #    labels=t_labels,
-        #    target_labels=target_labels
-        #    )
-
-
-        #elif attack_type == 'autozoom':
-        #    norm_imgs = normalize(imgs)
-        #    attack = AutoZOOMAttack(model_fn=model_fn, attack_mode='bilin', img_shape=(3,224,224))
-        #    imgs_adv = attack.generate(norm_imgs.cpu().numpy(), labels.cpu().numpy())
-        #    imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
+        #normalize
+        imgs = normalize(imgs.detach())
 
         # compute L2 and Linf metrics
         delta = imgs_adv - imgs
@@ -148,8 +138,7 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
         adv_metrics.total_linf += linf.sum().item()
 
         # normalize
-        imgs = normalize(imgs.detach())
-        imgs_adv = normalize(imgs_adv.detach())
+        #imgs_adv = normalize(imgs_adv.detach())
         #print(f"min: {imgs.min():.3f}, max: {imgs.max():.3f}")
         #print(f"min: {imgs_adv.min():.3f}, max: {imgs_adv.max():.3f}")
 

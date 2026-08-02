@@ -1,0 +1,165 @@
+{
+    
+"PGD-AT + entropy (linear eps sched, PGN lambda=0.1, lambda entropy = 0.001, 15 epochs": {
+
+        "val_clean_acc": 0.7739285714285714,
+        "val_adv_acc": 0.009642857142857142,
+        "test_clean_acc": 0.755,
+        "test_clean_auc": 0.880912,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.584,
+        "test_fgsm_small_auc": 0.575256,
+        "test_fgsm_small_asr": 0.171,
+        "test_fgsm_big_acc": 0.279,
+        "test_fgsm_big_auc": 0.12813999999999998,
+        "test_fgsm_big_asr": 0.488,
+        "test_ifgsm_small_acc": 0.742,
+        "test_ifgsm_small_auc": 0.8585119999999999,
+        "test_ifgsm_small_asr": 0.013,
+        "test_ifgsm_big_acc": 0.693,
+        "test_ifgsm_big_auc": 0.7825960000000001,
+        "test_ifgsm_big_asr": 0.062,
+        "test_pgd_small_acc": 0.729,
+        "test_pgd_small_auc": 0.8361239999999999,
+        "test_pgd_small_asr": 0.026,
+        "test_pgd_big_acc": 0.628,
+        "test_pgd_big_auc": 0.670796,
+        "test_pgd_big_asr": 0.127
+
+    },
+
+    "PGD-AT + entropy (linear eps sched, PGN lambda=0.01, lambda entropy = 0.001, 15 epochs": {
+
+        "val_clean_acc": 0.7692857142857142,
+        "val_adv_acc": 0.01,
+        "test_clean_acc": 0.759,
+        "test_clean_auc": 0.880912,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.585,
+        "test_fgsm_small_auc": 0.567792,
+        "test_fgsm_small_asr": 0.174,
+        "test_fgsm_big_acc": 0.262,
+        "test_fgsm_big_auc": 0.11287600000000002,
+        "test_fgsm_big_asr": 0.497,
+        "test_ifgsm_small_acc": 0.745,
+        "test_ifgsm_small_auc": 0.8587279999999999,
+        "test_ifgsm_small_asr": 0.014,
+        "test_ifgsm_big_acc": 0.686,
+        "test_ifgsm_big_auc": 0.781112,
+        "test_ifgsm_big_asr": 0.073,
+        "test_pgd_small_acc": 0.729,
+        "test_pgd_small_auc": 0.8361519999999999,
+        "test_pgd_small_asr": 0.03,
+        "test_pgd_big_acc": 0.622,
+        "test_pgd_big_auc": 0.6674359999999999,
+        "test_pgd_big_asr": 0.137
+
+    },
+
+    "PGD-AT + entropy (linear eps sched, PGN lambda=0.05, lambda entropy = 0.001, 15 epochs": {
+
+        "test_clean_acc": 0.745,
+        "test_clean_auc": 0.8728200000000002,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.57,
+        "test_fgsm_small_auc": 0.56578,
+        "test_fgsm_small_asr": 0.175,
+        "test_fgsm_big_acc": 0.278,
+        "test_fgsm_big_auc": 0.123004,
+        "test_fgsm_big_asr": 0.467,
+        "test_ifgsm_small_acc": 0.736,
+        "test_ifgsm_small_auc": 0.8508,
+        "test_ifgsm_small_asr": 0.009,
+        "test_ifgsm_big_acc": 0.689,
+        "test_ifgsm_big_auc": 0.772016,
+        "test_ifgsm_big_asr": 0.056,
+        "test_pgd_small_acc": 0.723,
+        "test_pgd_small_auc": 0.828024,
+        "test_pgd_small_asr": 0.022,
+        "test_pgd_big_acc": 0.627,
+        "test_pgd_big_auc": 0.6542520000000001,
+        "test_pgd_big_asr": 0.118
+
+    },
+
+    "PGD-AT + entropy (linear eps sched, lambda entropy = 0.05, 15 epochs": {
+
+        "test_clean_acc": 0.753,
+        "test_clean_auc": 0.880328,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.572,
+        "test_fgsm_small_auc": 0.56526,
+        "test_fgsm_small_asr": 0.181,
+        "test_fgsm_big_acc": 0.276,
+        "test_fgsm_big_auc": 0.131948,
+        "test_fgsm_big_asr": 0.489,
+        "test_ifgsm_small_acc": 0.741,
+        "test_ifgsm_small_auc": 0.859404,
+        "test_ifgsm_small_asr": 0.012,
+        "test_ifgsm_big_acc": 0.687,
+        "test_ifgsm_big_auc": 0.784746,
+        "test_ifgsm_big_asr": 0.066,
+        "test_pgd_small_acc": 0.723,
+        "test_pgd_small_auc": 0.839232,
+        "test_pgd_small_asr": 0.03,
+        "test_pgd_big_acc": 0.62,
+        "test_pgd_big_auc": 0.6668799999999999,
+        "test_pgd_big_asr": 0.133
+
+    },
+
+    "PGD-AT + entropy (linear eps sched, lambda entropy = 0.01, 15 epochs": {
+
+        "test_clean_acc": 0.748,
+        "test_clean_auc": 0.8659280000000001,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.57,
+        "test_fgsm_small_auc": 0.56762,
+        "test_fgsm_small_asr": 0.178,
+        "test_fgsm_big_acc": 0.265,
+        "test_fgsm_big_auc": 0.11954000000000001,
+        "test_fgsm_big_asr": 0.483,
+        "test_ifgsm_small_acc": 0.741,
+        "test_ifgsm_small_auc": 0.8443879999999999,
+        "test_ifgsm_small_asr": 0.007,
+        "test_ifgsm_big_acc": 0.695,
+        "test_ifgsm_big_auc": 0.7688079999999999,
+        "test_ifgsm_big_asr": 0.053,
+        "test_pgd_small_acc": 0.723,
+        "test_pgd_small_auc": 0.8230039999999998,
+        "test_pgd_small_asr": 0.025,
+        "test_pgd_big_acc": 0.623,
+        "test_pgd_big_auc": 0.656564,
+        "test_pgd_big_asr": 0.125
+
+    },
+
+    "PGD-AT + entropy (linear eps sched, lambda entropy = 0.1, 15 epochs": {
+
+        "val_clean_acc": 0.7853571428571429,
+        "val_adv_acc": 0.007142857142857143,
+        "test_clean_acc": 0.753,
+        "test_clean_auc": 0.874932,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.585,
+        "test_fgsm_small_auc": 0.569592,
+        "test_fgsm_small_asr": 0.168,
+        "test_fgsm_big_acc": 0.258,
+        "test_fgsm_big_auc": 0.129324,
+        "test_fgsm_big_asr": 0.495,
+        "test_ifgsm_small_acc": 0.736,
+        "test_ifgsm_small_auc": 0.85258,
+        "test_ifgsm_small_asr": 0.017,
+        "test_ifgsm_big_acc": 0.694,
+        "test_ifgsm_big_auc": 0.774236,
+        "test_ifgsm_big_asr": 0.059,
+        "test_pgd_small_acc": 0.723,
+        "test_pgd_small_auc": 0.829512,
+        "test_pgd_small_asr": 0.03,
+        "test_pgd_big_acc": 0.631,
+        "test_pgd_big_auc": 0.6598799999999999,
+        "test_pgd_big_asr": 0.122
+
+    }
+
+}

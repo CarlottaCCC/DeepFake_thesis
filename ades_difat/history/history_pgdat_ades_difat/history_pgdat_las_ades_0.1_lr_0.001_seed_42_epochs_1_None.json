@@ -1,0 +1,89 @@
+{
+    "epoch": 1,
+    "train_detector_losses": [
+        6.8340496063232425
+    ],
+    "train_scheduler_losses": [
+        6.8340496063232425
+    ],
+    "train_auc_clean": [
+        1.0
+    ],
+    "train_auc_adv": [
+        0.005555555555555555
+    ],
+    "val_auc_clean": [
+        0.9481816326530613
+    ],
+    "train_f1_clean": [
+        1.0
+    ],
+    "train_f1_adv": [
+        0.06557377049180328
+    ],
+    "val_f1_clean": [
+        0.8267427639624949
+    ],
+    "train_precision_clean": [
+        1.0
+    ],
+    "train_precision_adv": [
+        0.06451612903225806
+    ],
+    "val_precision_clean": [
+        0.9629629629629629
+    ],
+    "train_recall_clean": [
+        1.0
+    ],
+    "train_recall_adv": [
+        0.06666666666666667
+    ],
+    "val_recall_clean": [
+        0.7242857142857143
+    ],
+    "train_accuracy_clean": [
+        1.0
+    ],
+    "train_accuracy_adv": [
+        0.05
+    ],
+    "val_accuracy_clean": [
+        0.8482142857142857
+    ],
+    "val_auc_adv": [
+        0.0
+    ],
+    "val_f1_adv": [
+        0.0
+    ],
+    "val_precision_adv": [
+        0.0
+    ],
+    "val_recall_adv": [
+        0.0
+    ],
+    "val_accuracy_adv": [
+        0.0
+    ],
+    "train_asr": [
+        0.95
+    ],
+    "eps_stats": {
+        "mean": [
+            0.01778724230825901
+        ],
+        "std": [
+            0.0006124785868450999
+        ],
+        "min": [
+            0.015896020457148552
+        ],
+        "max": [
+            0.01815594732761383
+        ],
+        "median": [
+            0.018084662035107613
+        ]
+    }
+}

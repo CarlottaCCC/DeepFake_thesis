@@ -22,7 +22,6 @@ from torchvision.models import resnet50, ResNet50_Weights
 # models path: /mnt/hdd1/ciani/models/server_models:/models/
 # dataset path: /mnt/hdd1/ciani/faceforensics:/data/
 # code path: /home/ciani/tesi_server_deepfake:/work/project/
-
 '''
 podman run -it -v /home/ciani/tesi_server/deepfake:/work/project/ -v /mnt/hdd1/ciani/faceforensics:/data/ -v /mnt/hdd1/ciani/models/server_models:/models/  --hooks-dir=/usr/share/containers/oci/hooks.d/ --device nvidia.com/gpu=all  --ipc host localhost/ciani1881291/ciani_cirillo:latest
 '''
@@ -176,16 +175,17 @@ def get_data_loaders(transform, batch_size):
     print("Initializing training dataset....")
     train_dataset = FFDataset(root_dir=ROOT_DIR, split="train", transform=transform)
     # I get a small subset for debugging
-    #train_small, _ = balanced_subset(train_dataset, n_per_class=32)
+    #train_small, _ = balanced_subset(train_dataset, n_per_class=30)
     
     #print(train_dataset.getitem(0))
     print("Initializing validation dataset....")
     val_dataset = FFDataset(root_dir=ROOT_DIR, split="val", transform=transform)
     print("Initializing testing dataset....")
     test_dataset = FFDataset(root_dir=ROOT_DIR, split="test", transform=transform)
-    with open("sampled_test_set.json") as f:
-        sampled_test_set_paths = json.loads(f.read())
-    test_small = get_imgs_by_filepath(test_dataset, sampled_test_set_paths)
+    #with open("sampled_test_set.json") as f:
+    #    sampled_test_set_paths = json.loads(f.read())
+    #test_small = get_imgs_by_filepath(test_dataset, sampled_test_set_paths)
+    test_small, _ = balanced_subset(test_dataset, n_per_class=500)
     
     print("Initializing train loader...")
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -435,16 +435,16 @@ class CurriculumEpsilonScheduler:
         # I train with a list of epsilons that I want 
         # with the number of epochs that I want
         #self.epoch_epsilon_counter += 1
-        print(f"epsilon index: {self.current_epsilon_index}")
-        print(f"epoch counter {self.epoch_epsilon_counter}")
+        #print(f"epsilon index: {self.current_epsilon_index}")
+        #print(f"epoch counter {self.epoch_epsilon_counter}")
         if self.epoch_epsilon_counter >= self.num_epochs_per_eps:
             old_eps = self.epsilons[self.current_epsilon_index]
             self.current_epsilon_index += 1
             self.epoch_epsilon_counter = 1
             if self.current_epsilon_index < len(self.epsilons):
                 new_eps = self.epsilons[self.current_epsilon_index]
-                print(f"[CurriculumScheduler] Budget reached → advance: "
-                      f"ε {old_eps:.5f} → {new_eps:.5f}")
+                #print(f"[CurriculumScheduler] Budget reached → advance: "
+                #      f"ε {old_eps:.5f} → {new_eps:.5f}")
             else:
                 print(f"[CurriculumScheduler] All steps complete.")
                 self.stopped = True
@@ -827,7 +827,7 @@ def get_checkpoint(model, checkpoint_path, history_path, train_metrics, val_metr
 
     return model, train_metrics, val_metrics, train_losses, start_epoch
 
-def reset_checkpoint(checkpoint_path, sched_type, device, base_lr=1e-7, max_lr=1e-6, wd=1e-2, step_size_up=1):
+def reset_checkpoint(num_epochs, checkpoint_path, optimizer_type, sched_type, device, base_lr=1e-7, max_lr=1e-6, wd=1e-2, step_size_up=1):
     model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
     # I modify the last layer for binary classification
     model.fc = nn.Sequential(
@@ -838,7 +838,20 @@ def reset_checkpoint(checkpoint_path, sched_type, device, base_lr=1e-7, max_lr=1
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=wd)
+
+    if optimizer_type == "AdamW":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=wd)
+    elif optimizer_type == "SGD":
+        optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=base_lr,              # your empirically-successful ceiling was ~1e-5 under CyclicLR;
+                               # SGD+momentum can typically tolerate a somewhat higher peak LR
+                               # than Adam-family optimizers for the same model, but I'd still
+                               # start conservatively and treat this as a value to sweep
+        momentum=0.9,
+        weight_decay=wd,    # matches the paper directly, no scaling needed here
+        )
+
 
     if sched_type == "CyclicLR":
         scheduler = torch.optim.lr_scheduler.CyclicLR(
@@ -855,6 +868,10 @@ def reset_checkpoint(checkpoint_path, sched_type, device, base_lr=1e-7, max_lr=1
         T_mult=1,
         eta_min=base_lr
     )
+    elif sched_type == "MultiStepLR":
+        # paper: decay at epochs 75/90 out of 100 → i.e. at 75% and 90% of total training
+        milestones = [int(0.75 * num_epochs), int(0.90 * num_epochs)]  # e.g. [15, 18] for your 20 epochs
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
 
     return model, criterion, optimizer, scheduler
 

@@ -1,0 +1,38 @@
+[
+    {
+        "params": {
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "batch_size": 32
+        },
+        "val_clean_acc": 0.729047619047619,
+        "val_adv_acc": 0.0027380952380952383,
+        "test_clean_acc": 0.939,
+        "test_clean_auc": 0.986928,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.186,
+        "test_fgsm_small_auc": 0.06117800000000001,
+        "test_fgsm_small_asr": 0.753,
+        "test_fgsm_big_acc": 0.165,
+        "test_fgsm_big_auc": 0.05901800000000001,
+        "test_fgsm_big_asr": 0.788,
+        "test_ifgsm_small_acc": 0.016,
+        "test_ifgsm_small_auc": 0.0007360000000000003,
+        "test_ifgsm_small_asr": 0.923,
+        "test_ifgsm_big_acc": 0.001,
+        "test_ifgsm_big_auc": 0.0,
+        "test_ifgsm_big_asr": 0.938,
+        "test_pgd_small_acc": 0.018,
+        "test_pgd_small_auc": 0.0009160000000000006,
+        "test_pgd_small_asr": 0.921,
+        "test_pgd_big_acc": 0.0,
+        "test_pgd_big_auc": 0.0,
+        "test_pgd_big_asr": 0.939,
+        "epoch_total_times": [
+            1963.460110404063,
+            1960.8039134640712,
+            1935.8393025179394
+        ],
+        "status": "ok"
+    }
+]

@@ -1,0 +1,142 @@
+
+
+[
+    {
+        "FGSM-AT (linear eps sched, PGN, 10 epochs)": {
+            "No_attack": {"accuracy": 0.837, "AUC_score": 0},
+            "FGSM (eps=2/255)": {
+                "accuracy": 0.53,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "FGSM (eps=8/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "IFGSM (eps=2/255)": {
+                "accuracy": 0.091,
+                "attack_success_rate": 0.815,
+                "AUC_score": 0.031
+            },
+            "IFGSM (eps=8/255)": {
+                "accuracy": 0.70,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=2/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=8/255)": {
+                "accuracy": 0.58,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            }
+        },
+
+        "FGSM-AT (linear eps sched, PGN, 20 epochs)": {
+            "No_attack": {"accuracy": 0.837, "AUC_score": 0},
+            "FGSM (eps=2/255)": {
+                "accuracy": 0.53,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "FGSM (eps=8/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "IFGSM (eps=2/255)": {
+                "accuracy": 0.091,
+                "attack_success_rate": 0.815,
+                "AUC_score": 0.031
+            },
+            "IFGSM (eps=8/255)": {
+                "accuracy": 0.70,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=2/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=8/255)": {
+                "accuracy": 0.58,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            }
+        },
+
+        "FGSM-AT (linear eps sched, PGN, 30 epochs)": {
+            "No_attack": {"accuracy": 0.837, "AUC_score": 0},
+            "FGSM (eps=2/255)": {
+                "accuracy": 0.53,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "FGSM (eps=8/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "IFGSM (eps=2/255)": {
+                "accuracy": 0.091,
+                "attack_success_rate": 0.815,
+                "AUC_score": 0.031
+            },
+            "IFGSM (eps=8/255)": {
+                "accuracy": 0.70,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=2/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=8/255)": {
+                "accuracy": 0.58,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            }
+        },
+
+        "FGSM-AT (linear eps sched, PGN, 30 epochs)": {
+            "No_attack": {"accuracy": 0.837, "AUC_score": 0},
+            "FGSM (eps=2/255)": {
+                "accuracy": 0.53,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "FGSM (eps=8/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "IFGSM (eps=2/255)": {
+                "accuracy": 0.091,
+                "attack_success_rate": 0.815,
+                "AUC_score": 0.031
+            },
+            "IFGSM (eps=8/255)": {
+                "accuracy": 0.70,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=2/255)": {
+                "accuracy": 0,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            },
+            "PGD (eps=8/255)": {
+                "accuracy": 0.58,
+                "attack_success_rate": 0,
+                "AUC_score": 0
+            }
+        }
+    
+    }
+]

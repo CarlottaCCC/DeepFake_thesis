@@ -1,0 +1,53 @@
+[
+    {
+        "params": {
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "batch_size": 16
+        },
+        "loss_type": "MAXLOSS_LINEAR_TARGET",
+        "lambda_mean": 1.0,
+        "beta": 0.01,
+        "val_clean_acc": 0.5664285714285714,
+        "val_adv_acc": 0.02857142857142857,
+        "test_clean_acc": 0.581,
+        "test_clean_auc": 0.805412,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.505,
+        "test_fgsm_small_auc": 0.250674,
+        "test_fgsm_small_asr": 0.086,
+        "test_fgsm_big_acc": 0.436,
+        "test_fgsm_big_auc": 0.15057600000000002,
+        "test_fgsm_big_asr": 0.161,
+        "test_ifgsm_small_acc": 0.394,
+        "test_ifgsm_small_auc": 0.03508800000000001,
+        "test_ifgsm_small_asr": 0.187,
+        "test_ifgsm_big_acc": 0.027,
+        "test_ifgsm_big_auc": 0.0,
+        "test_ifgsm_big_asr": 0.554,
+        "test_pgd_small_acc": 0.441,
+        "test_pgd_small_auc": 0.09455200000000001,
+        "test_pgd_small_asr": 0.14,
+        "test_pgd_big_acc": 0.017,
+        "test_pgd_big_auc": 0.0,
+        "test_pgd_big_asr": 0.564,
+        "epoch_total_times": [
+            2796.360561039299,
+            2796.8262535841204,
+            2801.0479731257074,
+            2799.5657339100726,
+            2800.4546684743837,
+            2800.4751883964054,
+            2791.821430981159,
+            2788.286110433284,
+            2785.7458938946947,
+            2797.3456698954105,
+            2797.7588162706234,
+            2795.776806765236,
+            2794.7562321727164,
+            2797.9779564407654,
+            2793.4308049981482
+        ],
+        "status": "ok"
+    }
+]

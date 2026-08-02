@@ -1,0 +1,43 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 16,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.1
+        },
+        "val_clean_acc": 0.7710714285714285,
+        "val_adv_acc": 0.01,
+        "test_clean_acc": 0.754,
+        "test_clean_auc": 0.872844,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.584,
+        "test_fgsm_small_auc": 0.568524,
+        "test_fgsm_small_asr": 0.172,
+        "test_fgsm_big_acc": 0.265,
+        "test_fgsm_big_auc": 0.12846400000000002,
+        "test_fgsm_big_asr": 0.505,
+        "test_ifgsm_small_acc": 0.745,
+        "test_ifgsm_small_auc": 0.851024,
+        "test_ifgsm_small_asr": 0.009,
+        "test_ifgsm_big_acc": 0.691,
+        "test_ifgsm_big_auc": 0.7782640000000001,
+        "test_ifgsm_big_asr": 0.063,
+        "test_pgd_small_acc": 0.731,
+        "test_pgd_small_auc": 0.830392,
+        "test_pgd_small_asr": 0.023,
+        "test_pgd_big_acc": 0.624,
+        "test_pgd_big_auc": 0.666416,
+        "test_pgd_big_asr": 0.13,
+        "alpha_adv": 0.5,
+        "eps_scheduler": "linear",
+        "training": "PGD-AT + entropy",
+        "pgn": "_",
+        "fgsm_aux_loss": "_",
+        "status": "ok"
+    }
+]

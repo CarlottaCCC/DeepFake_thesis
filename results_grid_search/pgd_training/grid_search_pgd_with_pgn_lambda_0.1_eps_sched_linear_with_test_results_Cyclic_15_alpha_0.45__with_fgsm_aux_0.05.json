@@ -1,0 +1,43 @@
+[
+    {
+        "params": {
+            "base_lr": 1e-06,
+            "max_lr": 0.0001,
+            "weight_decay": 0.01,
+            "batch_size": 16,
+            "step_size_up": 1,
+            "lambda_entropy": 0.001,
+            "num_epochs_per_eps": 1,
+            "lambda_grad": 0.1
+        },
+        "val_clean_acc": 0.7832142857142858,
+        "val_adv_acc": 0.008571428571428572,
+        "test_clean_acc": 0.754,
+        "test_clean_auc": 0.878884,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.585,
+        "test_fgsm_small_auc": 0.5653360000000001,
+        "test_fgsm_small_asr": 0.169,
+        "test_fgsm_big_acc": 0.272,
+        "test_fgsm_big_auc": 0.12568000000000001,
+        "test_fgsm_big_asr": 0.482,
+        "test_ifgsm_small_acc": 0.741,
+        "test_ifgsm_small_auc": 0.8566239999999999,
+        "test_ifgsm_small_asr": 0.013,
+        "test_ifgsm_big_acc": 0.696,
+        "test_ifgsm_big_auc": 0.780432,
+        "test_ifgsm_big_asr": 0.058,
+        "test_pgd_small_acc": 0.723,
+        "test_pgd_small_auc": 0.834236,
+        "test_pgd_small_asr": 0.031,
+        "test_pgd_big_acc": 0.629,
+        "test_pgd_big_auc": 0.662766,
+        "test_pgd_big_asr": 0.125,
+        "alpha_adv": 0.45,
+        "eps_scheduler": "linear",
+        "training": "PGD-AT",
+        "pgn": "_with_pgn_lambda_0.1",
+        "fgsm_aux_loss": "_with_fgsm_aux_0.05",
+        "status": "ok"
+    }
+]

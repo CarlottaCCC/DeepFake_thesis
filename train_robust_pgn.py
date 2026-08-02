@@ -125,10 +125,12 @@ def train_robust_with_curriculum_pgn(model, train_loader, val_loader, lambda_ent
                 #+ lambda_grad * loss_grad_clean \
 
                 loss = (1-alpha_adv) * loss_clean + alpha_adv * loss_adv \
-                       + lambda_entropy * entropy_adv + lambda_grad * loss_grad_clean 
+                       + lambda_entropy * entropy_adv 
+                       #+ lambda_grad * loss_grad_clean 
                        #+ lambda_grad * loss_grad_adv
             else:
-                loss = (1-alpha_adv) * loss_clean + alpha_adv * loss_adv + lambda_grad * loss_grad_clean 
+                loss = (1-alpha_adv) * loss_clean + alpha_adv * loss_adv 
+                #+ lambda_grad * loss_grad_clean 
                 #+ lambda_grad * loss_grad_adv 
 
             train_loss += loss.item() * imgs.size(0)

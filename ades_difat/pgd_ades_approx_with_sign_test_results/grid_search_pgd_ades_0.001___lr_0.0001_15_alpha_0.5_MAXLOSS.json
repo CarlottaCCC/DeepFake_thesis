@@ -1,0 +1,50 @@
+[
+    {
+        "params": {
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "batch_size": 16
+        },
+        "val_clean_acc": 0.6770238095238095,
+        "val_adv_acc": 0.030166666666666668,
+        "test_clean_acc": 0.822,
+        "test_clean_auc": 0.9412200000000001,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.187,
+        "test_fgsm_small_auc": 0.08418400000000001,
+        "test_fgsm_small_asr": 0.667,
+        "test_fgsm_big_acc": 0.137,
+        "test_fgsm_big_auc": 0.04204,
+        "test_fgsm_big_asr": 0.721,
+        "test_ifgsm_small_acc": 0.051,
+        "test_ifgsm_small_auc": 0.0039239999999999995,
+        "test_ifgsm_small_asr": 0.773,
+        "test_ifgsm_big_acc": 0.009,
+        "test_ifgsm_big_auc": 5.600000000000005e-05,
+        "test_ifgsm_big_asr": 0.813,
+        "test_pgd_small_acc": 0.053,
+        "test_pgd_small_auc": 0.007696000000000002,
+        "test_pgd_small_asr": 0.771,
+        "test_pgd_big_acc": 0.003,
+        "test_pgd_big_auc": 1.6000000000000016e-05,
+        "test_pgd_big_asr": 0.819,
+        "epoch_total_times": [
+            3706.44408371998,
+            3717.457208835054,
+            3709.0759287015535,
+            3709.29897775501,
+            3718.5474994857796,
+            3707.4213140308857,
+            3676.9442936643027,
+            3633.4943535942584,
+            3634.995728893671,
+            3631.847664969042,
+            3631.6794815780595,
+            3629.39013257809,
+            3630.930053306278,
+            3627.739426054992,
+            3626.331388675142
+        ],
+        "status": "ok"
+    }
+]

@@ -71,6 +71,22 @@ def make_model_fn(model: nn.Module, device: str = 'cpu'):
 #    elif attack_type == 'ifgsm':
 #        _, imgs_ifgsm, _ = ifgsm(model, imgs, labels, epsilons=EPS_IFGSM)
 #        return normalize(imgs_ifgsm)
+
+def rs_fgsm(current_eps, model, imgs_raw, y):
+    with torch.enable_grad():
+        imgs_raw = imgs_raw.detach()
+        delta = torch.empty_like(imgs_raw).uniform_(-current_eps, current_eps)
+        delta = torch.clamp(imgs_raw + delta, 0, 1) - imgs_raw
+        imgs_start = (imgs_raw + delta).clone().requires_grad_(True)
+        imgs_norm = normalize(imgs_start)
+        logits_clean = model(imgs_norm)
+        loss_tmp = nn.CrossEntropyLoss()(logits_clean, y)
+        grad_imgs = torch.autograd.grad(loss_tmp, imgs_start)[0]
+ 
+    imgs_adv = imgs_start.detach() + current_eps * grad_imgs.sign()
+    imgs_adv = torch.clamp(imgs_adv, 0, 1)
+
+    return imgs_adv
     
 def get_attack_foolbox(attack_type):
     if attack_type == 'fgsm':
@@ -78,15 +94,15 @@ def get_attack_foolbox(attack_type):
        return fgsm
     elif attack_type == 'pgd':
         pgd = fb.attacks.LinfPGD(
-        steps=40,
-        rel_stepsize=1/255,
-        abs_stepsize=None,
+        steps=20,
+        #rel_stepsize=1/255,
+        abs_stepsize=1/255,
         random_start=True)
         return pgd
     elif attack_type == 'ifgsm':
         ifgsm = fb.attacks.LinfPGD(
         steps=20,
-        rel_stepsize=1/255,
+        abs_stepsize=1/255,
         random_start=False)  # → with no random start PGD = IFGSM
         return ifgsm
     elif attack_type == 'genattack':
