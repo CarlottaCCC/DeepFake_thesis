@@ -219,8 +219,8 @@ class EarlyStopping:
         if self.best_acc is None or val_acc < self.best_acc - self.min_delta:
             self.best_acc = val_acc
             self.best_epoch = epoch
-            self.best_eps = current_eps
-            save_path =  f'{MODELS_DIR}/with_lr_scheduler/resnet50_fgsm_epoch_best_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{self.best_eps}_seed_{seed}_{eps_sched}_sched.pt'
+            #self.best_eps = current_eps
+            save_path =  f'{MODELS_DIR}/resnet50_clean_epoch_{epoch+1}_with_Multistep_lrscheduler.pt'
             self.best_weights = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             #torch.save(model.state_dict(), save_path)  # save the best
             torch.save({
@@ -229,13 +229,13 @@ class EarlyStopping:
                 "optimizer_state_dict": optimizer.state_dict(),
                 'train_losses': train_losses,
                 "train_auc_clean": train_metrics_clean.auc_list,
-                "train_auc_adv": train_metrics_adv.auc_list,
+                #"train_auc_adv": None,
                 "val_auc": val_metrics.auc_list,
                 "train_tpr_clean": train_metrics_clean.tpr,
-                "train_tpr_adv": train_metrics_adv.tpr,
+                #"train_tpr_adv": None,
                 "val_tpr": val_metrics.tpr,
                 "train_fpr_clean": train_metrics_clean.fpr,
-                "train_fpr_adv": train_metrics_adv.fpr,
+                #"train_fpr_adv": None,
                 "val_fpr": val_metrics.fpr
             },save_path)
 
@@ -244,24 +244,24 @@ class EarlyStopping:
                 "epoch": self.best_epoch+1,
                 "train_losses": train_losses,
                 "train_auc_clean": train_metrics_clean.auc_list,
-                "train_auc_adv": train_metrics_adv.auc_list,
+                #"train_auc_adv": train_metrics_adv.auc_list,
                 "val_auc": val_metrics.auc_list,
                 "train_f1_clean": train_metrics_clean.f1_list,
-                "train_f1_adv": train_metrics_adv.f1_list,
+                #"train_f1_adv": train_metrics_adv.f1_list,
                 "val_f1": val_metrics.f1_list,
                 "train_precision_clean": train_metrics_clean.precision_list,
-                "train_precision_adv": train_metrics_adv.precision_list,
+                #"train_precision_adv": train_metrics_adv.precision_list,
                 "val_precision": val_metrics.precision_list,
-                "train_recall_clean": train_metrics_clean.recall_list,
-                "train_recall_adv": train_metrics_adv.recall_list,
+                #"train_recall_clean": train_metrics_clean.recall_list,
+                #"train_recall_adv": train_metrics_adv.recall_list,
                 "val_recall": val_metrics.recall_list,
                 "train_accuracy_clean": train_metrics_clean.accuracy_list,
-                "train_accuracy_adv": train_metrics_adv.accuracy_list,
+                #"train_accuracy_adv": train_metrics_adv.accuracy_list,
                 "val_accuracy": val_metrics.accuracy_list,
-                "train_asr": train_metrics_adv.asr_list,
-                "train_epsilon": self.best_eps
+                #"train_asr": train_metrics_adv.asr_list,
+                #"train_epsilon": self.best_eps
             }
-            save_history_json(history,f"history/history_{attack}/history_fgsm_epoch_best_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{self.best_eps}_seed_{seed}_{eps_sched}_sched.json")
+            save_history_json(history,f"history/history_clean/history_resnet50_clean_epoch_{epoch+1}_with_Multistep_lrscheduler.json")
             self.counter = 0
         else:
             self.counter += 1

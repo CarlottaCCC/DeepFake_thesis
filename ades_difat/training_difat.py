@@ -1,6 +1,6 @@
 import os
 os.environ['MPLCONFIGDIR'] = "/work/project"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import time
 import torch
 import torch.nn as nn
@@ -35,11 +35,23 @@ def standard_pgd_attack(model, x, y, eps, alpha, steps, normalize, clamp_min=0.0
  
     return torch.clamp(x + delta.detach(), clamp_min, clamp_max)
 
+def difat_scheduler(num_epochs, current_epoch):
+    phase1_end = num_epochs // 3
+    phase2_end = 2 * num_epochs // 3
+
+    if current_epoch < phase1_end:
+        target_eps = 2/255
+    elif current_epoch < phase2_end:
+        target_eps = 4/255
+    else:
+        target_eps = 8/255
+    return target_eps
+
 def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, LRscheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, 
                   eps=8/255, alpha=2/255, steps=8, lr=1e-3,
                   epsilon_scheduler=None,    # "baseline" | "ades" | "difat"
                   # --- DifAT-specific ---
-                  difat_purifier=None, difat_margin_c=1.0, difat_tau=1,
+                  difat_purifier=None, difat_margin_c=0.0, difat_tau=1,
                   seed=0, save_model=True):
 
     assert difat_purifier is not None, "mode='difat' requires a DiffusionPurifier"
@@ -51,6 +63,7 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
     history = {}
 
     eps_stats = {
+    "target_eps": [],
     "mean": [],
     "std": [],
     "min": [],
@@ -58,8 +71,12 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
     "median": [],
     }
     
+    eps_epoch_list = []
+    
     epoch_train_times, epoch_val_times, epoch_total_times = [], [], []
     training_start_time = time.perf_counter()
+    technique_rng = random.Random(42)
+    p_difat = 0.25  # fraction of batches that use DifAT
     
     print(f"Training PGD-AT | mode={mode} | eps={eps:.4f} alpha={alpha:.4f} steps={steps}")
     
@@ -75,7 +92,8 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
             else:
                 eps = epsilon_scheduler.get_epsilon(val_acc_adv, clean_acc, epoch)
         else:
-            eps = eps
+            eps = difat_scheduler(num_epochs, epoch)
+            print(f"CURRENT EPSILON: {eps}")
 
         freeze_bn(model)
         train_metrics_clean.reset_epoch()
@@ -104,13 +122,18 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
             # ------------------------------------------------------------------
             # DPGD
             # ------------------------------------------------------------------
-            
-            imgs_adv_raw = dpgd_attack(
-                model, imgs_raw.detach(), y, eps, alpha, steps,
-                purifier=difat_purifier, margin_c=difat_margin_c,
-                control_factor_tau=difat_tau,
-            )
-            sigma = None
+            if technique_rng.random() < p_difat:
+                imgs_adv_raw = dpgd_attack(
+                    model, imgs_raw.detach(), y, eps, alpha, steps,
+                    purifier=difat_purifier, margin_c=difat_margin_c,
+                    control_factor_tau=difat_tau,
+                )
+                sigma = None
+            else:
+                imgs_adv_raw = standard_pgd_attack(model, imgs_raw.detach(), y, eps, alpha, steps, normalize)
+                sigma = None
+
+            eps_epoch_list.append(eps)
             imgs_adv = normalize(imgs_adv_raw.detach().requires_grad_(True))
     
             logits_adv = model(imgs_adv)
@@ -125,7 +148,7 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
             train_loss += loss.item() * imgs.size(0)
             epoch_loss = train_loss / len(train_loader.dataset)
 
-            loss.backward(retain_graph=True)
+            loss.backward()
             optimizer.step()
         
             n_seen += imgs.size(0)
@@ -142,6 +165,15 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
         train_results_clean = train_metrics_clean.compute()
         train_results_adv = train_metrics_adv.compute()
         train_metrics_adv.attack_success_rate(train_metrics_clean.all_probs)
+
+        eps_stats["target_eps"].append(eps)
+        eps_stats["mean"].append(epoch_eps.mean().item())
+        eps_stats["std"].append(epoch_eps.std().item())
+        eps_stats["min"].append(epoch_eps.min().item())
+        eps_stats["max"].append(epoch_eps.max().item())
+        eps_stats["median"].append(epoch_eps.median().item())
+        
+        print(eps_stats)
     
         if torch.cuda.is_available():
             torch.cuda.synchronize()
@@ -210,7 +242,7 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
     print(f"[TIMING] Total: {total_time:.2f}s ({total_time/60:.2f} min) over {num_epochs} epochs, "
           f"mode={mode}, avg {sum(epoch_total_times)/max(len(epoch_total_times),1):.2f}s/epoch")
 
-    mode = f"difat_c_{difat_margin_c}_tau_{difat_tau}"
+    mode = f"difat_c_{difat_margin_c}_tau_{difat_tau}_perc_{p_difat}"
 
     epsilon_label = "_"
 
@@ -219,8 +251,8 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
     else:
         epsilon_label = f"linear_epsilon_scheduler"
 
-    save_path = f'{MODELS_DIR}/pgdat_ades_difat/resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}_freeze.pt'
-    history_path = f"history/history_pgdat_ades_difat/history_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}_freeze.json"
+    save_path = f'{MODELS_DIR}/pgdat_ades_difat/resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}.pt'
+    history_path = f"history/history_pgdat_ades_difat/history_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}.json"
     
     if save_model:
         torch.save({
@@ -280,7 +312,7 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
     save_history_json(history, history_path)
     
 
-    return model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times, loss_type
+    return model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times
 
 if __name__ == "__main__":
 
@@ -352,7 +384,7 @@ if __name__ == "__main__":
     #DIFAT
     pipe = DDPMPipeline.from_pretrained("google/ddpm-celebahq-256")
     difat_purifier = DiffusionPurifier(pipe.unet, pipe.scheduler, device=device)
-    difat_margin_c = 1
+    difat_margin_c = 0
     difat_tau = 1
     #Baseline with linear epsilon scheduler
     # EPSILON SCHEDULER
@@ -367,7 +399,7 @@ if __name__ == "__main__":
     ##############################
     print(f"Starting training PGD-AT with mode: {mode}")
     
-    trained_model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times, loss_type = train_pgd_at(
+    trained_model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times = difat(
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
@@ -418,7 +450,6 @@ if __name__ == "__main__":
     else:
         results.append({
             'params': params, 
-            'loss_type': loss_type,
             'difat_margin_c': difat_margin_c,
             'difat_tau': difat_tau,
             'val_clean_acc': val_clean_acc, 
@@ -450,7 +481,7 @@ if __name__ == "__main__":
     out_dir = f'pgd_{mode}'
     os.makedirs(out_dir, exist_ok=True)
 
-    mode = f"difat_c_{difat_margin_c}_tau_{difat_tau}"
+    mode = f"difat_c_{difat_margin_c}_tau_{difat_tau}_perc_25"
 
     epsilon_label = "_"
     
@@ -459,7 +490,7 @@ if __name__ == "__main__":
     else:
         epsilon_label = f"linear_epsilon_scheduler"
 
-    with open(f'{out_dir}/grid_search_pgd_{mode}_{epsilon_label}_lr_{lr}_{num_epochs}_alpha_{alpha_adv}_freeze.json', 'w') as f:
+    with open(f'{out_dir}/test_pgd_{mode}_{epsilon_label}_lr_{lr}_{num_epochs}_alpha_{alpha_adv}.json', 'w') as f:
         json.dump(results, f, indent=4)
 
     print(f"Clean acc: {val_clean_acc:.4f} | Adv acc: {val_adv_acc:.4f}")

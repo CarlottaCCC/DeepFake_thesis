@@ -263,6 +263,9 @@ def pgd_attack_adaptive_eps_differentiable(model: nn.Module, normalize, x: torch
 
     #print(f"Scheduler loss:{loss}")
     #print(delta.grad_fn)
+
+    #img_adv = torch.clamp(x + delta.detach(), clamp_min, clamp_max)
+    #print(img_adv.min().item(), img_adv.max().item(), img_adv.mean().item(), img_adv.std().item())
  
     return torch.clamp(x + delta, clamp_min, clamp_max)
 

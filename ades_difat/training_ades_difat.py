@@ -31,6 +31,7 @@ from diffusers import DDPMPipeline, DDPMScheduler
  
 from ades import LearnableEpsilonScheduler, compute_adaptive_epsilon, pgd_attack_adaptive_eps, pgd_attack_adaptive_eps_differentiable
 from difat import DiffusionPurifier, dpgd_attack
+from plot_epsilon_statistics import plot_epsilon_statistics
  
  
 def standard_pgd_attack(model, x, y, eps, alpha, steps, normalize, clamp_min=0.0, clamp_max=1.0):
@@ -47,25 +48,34 @@ def standard_pgd_attack(model, x, y, eps, alpha, steps, normalize, clamp_min=0.0
         delta = torch.clamp(delta, -eps, eps)
         delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
         delta.requires_grad_(True)
+
+        img_adv = torch.clamp(x + delta.detach(), clamp_min, clamp_max)
+        #print(img_adv.min().item(), img_adv.max().item(), img_adv.mean().item(), img_adv.std().item())
  
-    return torch.clamp(x + delta.detach(), clamp_min, clamp_max)
+    return img_adv
 
-def linear_scheduler(num_epochs, current_epoch):
-    if current_epoch < num_epochs // 2:
-        target_eps = (current_epoch / (num_epochs // 2)) * (8/255)
+def linear_scheduler(num_epochs, current_epoch, num_epochs_rampup=0, eps_start=0, eps_end=8/255):
+
+    if num_epochs_rampup == 0:
+
+        if current_epoch < num_epochs // 2:
+            target_eps = (current_epoch / (num_epochs // 2)) * (8/255)
+        else:
+            target_eps = 8/255
+
     else:
-        target_eps = 8/255
+        t = min(current_epoch / num_epochs_rampup, 1.0)  # clamp to [0,1]
+        target_eps = eps_start + (eps_end - eps_start) * t
     return target_eps
-
  
 def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, LRscheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, 
                   eps=8/255, alpha=2/255, steps=8, lr=1e-3,
                   mode="baseline", epsilon_scheduler=None,    # "baseline" | "ades" | "difat"
                   # --- ADES-specific ---
                   ades_scheduler=None, ades_optimizer=None, ades_eps_min=0/255,
-                  ades_eps_lambda=6/255, ades_mc_passes=3, lambda_ades = 0.01, lambda_mean = 1.0, beta = 0.01,
+                  ades_eps_lambda=8/255, ades_mc_passes=3, lambda_ades = 0.01, lambda_mean = 1.0, beta = 0.01,
                   # --- DifAT-specific ---
-                  difat_purifier=None, difat_margin_c=1.0, difat_tau=1,
+                  difat_purifier=None, difat_margin_c=0.0, difat_tau=1,
                   seed=0, save_model=True):
  
     
@@ -81,12 +91,15 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
     history = {}
 
     eps_stats = {
+    "target_eps": [],
     "mean": [],
     "std": [],
     "min": [],
     "max": [],
     "median": [],
     }
+
+    eps_epoch_list = []
  
     epoch_train_times, epoch_val_times, epoch_total_times = [], [], []
     training_start_time = time.perf_counter()
@@ -98,6 +111,7 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
         model.train()
         train_loss, train_correct_clean, train_correct_adv, n_seen = 0.0, 0, 0, 0
         epoch_eps = []
+        eps_epoch_list = []
 
         if mode in ("baseline","difat"):
             if epsilon_scheduler != None:
@@ -107,6 +121,7 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
                     eps = epsilon_scheduler.get_epsilon(val_acc_adv, clean_acc, epoch)
             else:
                 eps = eps
+
 
         freeze_bn(model)
         train_metrics_clean.reset_epoch()
@@ -142,6 +157,7 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
                 imgs_adv_raw = standard_pgd_attack(model, imgs_raw.detach(), y, eps, alpha, steps, normalize)
                 imgs_adv = normalize(imgs_adv_raw.detach().requires_grad_(True)) # detach() or not detach()???
                 sigma = None
+                eps_epoch_list.append(eps)
  
             elif mode == "ades":
                 eps_x, sigma = compute_adaptive_epsilon(
@@ -205,15 +221,14 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
                 # SCHEDULER LOSS 3
                 loss_type = "MAXLOSS_LINEAR_TARGET"
                 #scheduler_loss = -loss_adv - beta * eps_x.var(unbiased=False)
-                target_eps = linear_scheduler(num_epochs, epoch) / (8/255)
+                target_eps = linear_scheduler(num_epochs, epoch, num_epochs_rampup=10) / (8/255)
                 current_mean = mean_eps / (8/255)
-                adv_term = -loss_adv
+                adv_term = - loss_adv
                 mean_term = lambda_mean * (current_mean - target_eps).pow(2)
-                var_term = - beta * eps_x.var(unbiased=False)
+                #var_term = - beta * eps_x.var(unbiased=False)
                 scheduler_loss = (
                    adv_term
                    + mean_term
-                   + var_term
                )
 
                 #print(
@@ -283,6 +298,7 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
             #print(eps_epoch_mean)
             #avg_eps_per_epoch.append(eps_epoch_mean)
             #avg_eps_per_batch = []
+            eps_stats["target_eps"].append(target_eps)
             eps_stats["mean"].append(epoch_eps.mean().item())
             eps_stats["std"].append(epoch_eps.std().item())
             eps_stats["min"].append(epoch_eps.min().item())
@@ -290,6 +306,13 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
             eps_stats["median"].append(epoch_eps.median().item())
             
             print(eps_stats)
+
+        if mode == "baseline":
+            eps_stats["mean"].append(np.mean(eps_epoch_list))
+            eps_stats["std"].append(np.std(eps_epoch_list))
+            eps_stats["min"].append(min(eps_epoch_list))
+            eps_stats["max"].append(min(eps_epoch_list))
+            eps_stats["median"].append(np.median(eps_epoch_list))
 
  
         if torch.cuda.is_available():
@@ -313,6 +336,7 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
  
             with torch.enable_grad():
                 imgs_adv_raw = standard_pgd_attack(model, imgs_raw.detach(), y, 8/255, 1/255, 20, normalize)
+                #print(imgs_adv_raw.min().item(), imgs_adv_raw.max().item(), imgs_adv_raw.mean().item(), imgs_adv_raw.std().item())
  
             with torch.no_grad():
                 logits_clean = model(normalize(imgs_raw))
@@ -366,8 +390,8 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
     if mode == "baseline":
         epsilon_label = f"_linear_eps_sched_numeprampup{int(num_epochs/2)}"
     
-    save_path = f'{MODELS_DIR}/pgdat_ades_difat/resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}_freeze.pt'
-    history_path = f"history/history_pgdat_ades_difat/history_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}_freeze.json"
+    save_path = f'{MODELS_DIR}/pgdat_ades_difat/resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}_freeze_norampup.pt'
+    history_path = f"history/history_pgdat_ades_difat/history_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}_freeze__norampup.json"
  
     if save_model:
         torch.save({
@@ -428,7 +452,7 @@ def train_pgd_at(model, train_loader, val_loader, start_epoch, num_epochs, optim
     save_history_json(history, history_path)
     
 
-    return model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times, loss_type
+    return model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times, loss_type, eps_stats
 
  
 if __name__ == "__main__":
@@ -449,13 +473,15 @@ if __name__ == "__main__":
     "batch_size": 16
     }
 
-    mode_list = ["ades"]
+    mode = "ades"
+
+    lambda_mean_list = [50]
 
     # Generate all combinations
     #keys   = list(param_grid.keys())
     #values = list(param_grid.values())
 
-    for mode in mode_list:
+    for lambda_mean in lambda_mean_list:
 
         #params = dict(zip(keys, combo))
 #
@@ -475,7 +501,7 @@ if __name__ == "__main__":
         ades_optimizer = None
         difat_purifier = None
         lambda_ades = 0
-        lambda_mean = 8.0
+        #lambda_mean = 8.0
         beta = 0.01
         train_metrics_clean = Metrics()
         train_metrics_adv = Metrics()
@@ -483,7 +509,7 @@ if __name__ == "__main__":
         val_metrics_adv = Metrics()
         start_epoch = 0
         train_losses = []
-        num_epochs = 25
+        num_epochs = 40
         alpha_adv = 0.5
         epsilon = 8/255
     
@@ -531,7 +557,7 @@ if __name__ == "__main__":
         # EPSILON SCHEDULER
         #if mode == "baseline":
         type_sched = 'linear'
-        num_epochs_rampup = 12
+        num_epochs_rampup = int(num_epochs/2)
         epsilon_scheduler = CurriculumEpsilonScheduler(
                 eps_start=0/255, eps_end=8/255,
                 num_epochs_rampup=num_epochs_rampup, type=type_sched,
@@ -543,7 +569,7 @@ if __name__ == "__main__":
 
         print(f"Starting training PGD-AT with mode: {mode}")
         
-        trained_model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times, loss_type = train_pgd_at(
+        trained_model, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses, epoch_total_times, loss_type, eps_stats = train_pgd_at(
             model=model,
             train_loader=train_loader,
             val_loader=val_loader,
@@ -575,57 +601,57 @@ if __name__ == "__main__":
         val_clean_acc = val_metrics_clean.accuracy_list[num_epochs-1]
         torch.cuda.synchronize(device)
         torch.cuda.empty_cache()
-         # testing
-        clean_metrics, fgsm_metrics_1 = test_attack(trained_model, test_loader, 'fgsm', 2/255, 'foolbox', " ", " ", "FGSM (eps=2/255)", device, save_results=False)
-        clean_metrics, fgsm_metrics_2 = test_attack(trained_model, test_loader, 'fgsm', 8/255, 'foolbox', " ", " ", "FGSM (eps=8/255)", device, save_results=False)
-        clean_metrics, ifgsm_metrics_2 = test_attack(trained_model, test_loader, 'ifgsm', 8/255, 'foolbox', " ", " ", "IFGSM",device, save_results=False)
-        clean_metrics, pgd_metrics_2 = test_attack(trained_model, test_loader, 'pgd', 8/255, 'None', " ", " ", "PGD", device, save_results=False)
-        clean_metrics, ifgsm_metrics_1 = test_attack(trained_model, test_loader, 'ifgsm', 2/255, 'foolbox', " ", " ", "IFGSM",device, save_results=False)
-        clean_metrics, pgd_metrics_1 = test_attack(trained_model, test_loader, 'pgd', 2/255, 'None', " ", " ", "PGD", device, save_results=False)
-    
-    
-        if torch.isnan(torch.tensor(val_clean_acc)):
-            results.append({
-                'params': params, 
-                'val_clean_acc': None, 
-                'val_adv_acc':  None,
-                'test_clean_acc':  None,
-                'test_fgsm_small_acc':  None,
-                'test_fgsm_big_acc':  None,
-                'test_ifgsm_big_acc':  None,
-                'test_pgd_big_acc':  None,
-                'status': 'failed_nan'})
-        else:
-            results.append({
-                'params': params, 
-                'loss_type': loss_type,
-                'lambda_mean': lambda_mean,
-                'beta': beta,
-                'val_clean_acc': val_clean_acc, 
-                'val_adv_acc': val_adv_acc,
-                'test_clean_acc': clean_metrics.accuracy_list[0],
-                'test_clean_auc': clean_metrics.auc_list[0],
-                'test_clean_asr': 0,
-                'test_fgsm_small_acc': fgsm_metrics_1.accuracy_list[0],
-                'test_fgsm_small_auc': fgsm_metrics_1.auc_list[0],
-                'test_fgsm_small_asr': fgsm_metrics_1.asr_list[0],
-                'test_fgsm_big_acc': fgsm_metrics_2.accuracy_list[0],
-                'test_fgsm_big_auc': fgsm_metrics_2.auc_list[0],
-                'test_fgsm_big_asr': fgsm_metrics_2.asr_list[0],
-                'test_ifgsm_small_acc': ifgsm_metrics_1.accuracy_list[0],
-                'test_ifgsm_small_auc': ifgsm_metrics_1.auc_list[0],
-                'test_ifgsm_small_asr': ifgsm_metrics_1.asr_list[0],
-                'test_ifgsm_big_acc': ifgsm_metrics_2.accuracy_list[0],
-                'test_ifgsm_big_auc': ifgsm_metrics_2.auc_list[0],
-                'test_ifgsm_big_asr': ifgsm_metrics_2.asr_list[0],
-                'test_pgd_small_acc': pgd_metrics_1.accuracy_list[0],
-                'test_pgd_small_auc': pgd_metrics_1.auc_list[0],
-                'test_pgd_small_asr': pgd_metrics_1.asr_list[0],
-                'test_pgd_big_acc': pgd_metrics_2.accuracy_list[0],
-                'test_pgd_big_auc': pgd_metrics_2.auc_list[0],
-                'test_pgd_big_asr': pgd_metrics_2.asr_list[0],
-                'epoch_total_times': epoch_total_times,
-                'status': 'ok'})
+
+        # plotting eps statistics
+        save_path_1 = f"plots/eps_stats_{mode}_lambda_mean_{lambda_mean}_epochs_{num_epochs}_rampup_{num_epochs_rampup}.png"
+        #save_path_2 = f"plots/eps_mean_{loss_label}_lambda_mean_{lambda_mean}.png"
+        
+        plot_epsilon_statistics(eps_stats, lambda_mean, save_path_1)
+        #plot_epsilon_convergence(stats["eps_stats"], lambda_mean, save_path_2)
+        # testing
+        clean_metrics, fgsm_metrics_4 = test_attack(model, test_loader, 'fgsm', 4/255, 'foolbox', " ", " ", "FGSM (eps=4/255)", device, save_results=False)
+        clean_metrics, ifgsm_metrics_4 = test_attack(model, test_loader, 'ifgsm', 4/255, 'foolbox', " ", " ", "IFGSM",device, save_results=False)
+        clean_metrics, pgd_metrics_4 = test_attack(model, test_loader, 'pgd', 4/255, 'foolbox', " ", " ", "PGD", device, save_results=False)
+        
+        clean_metrics, fgsm_metrics_1 = test_attack(model, test_loader, 'fgsm', 2/255, 'foolbox', " ", " ", "FGSM (eps=2/255)", device, save_results=False)
+        clean_metrics, fgsm_metrics_2 = test_attack(model, test_loader, 'fgsm', 8/255, 'foolbox', " ", " ", "FGSM (eps=8/255)", device, save_results=False)
+        clean_metrics, ifgsm_metrics_2 = test_attack(model, test_loader, 'ifgsm', 8/255, 'foolbox', " ", " ", "IFGSM",device, save_results=False)
+        clean_metrics, pgd_metrics_2 = test_attack(model, test_loader, 'pgd', 8/255, 'foolbox', " ", " ", "PGD", device, save_results=False)
+        clean_metrics, ifgsm_metrics_1 = test_attack(model, test_loader, 'ifgsm', 2/255, 'foolbox', " ", " ", "IFGSM",device, save_results=False)
+        clean_metrics, pgd_metrics_1 = test_attack(model, test_loader, 'pgd', 2/255, 'foolbox', " ", " ", "PGD", device, save_results=False)
+        
+        results.append({
+            'test_clean_acc': clean_metrics.accuracy_list[0],
+            'test_clean_auc': clean_metrics.auc_list[0],
+            'test_clean_asr': 0,
+            'test_fgsm_small_acc': fgsm_metrics_1.accuracy_list[0],
+            'test_fgsm_small_auc': fgsm_metrics_1.auc_list[0],
+            'test_fgsm_small_asr': fgsm_metrics_1.asr_list[0],
+            'test_fgsm_med_acc': fgsm_metrics_4.accuracy_list[0],
+            'test_fgsm_med_auc': fgsm_metrics_4.auc_list[0],
+            'test_fgsm_med_asr': fgsm_metrics_4.asr_list[0],
+            'test_fgsm_big_acc': fgsm_metrics_2.accuracy_list[0],
+            'test_fgsm_big_auc': fgsm_metrics_2.auc_list[0],
+            'test_fgsm_big_asr': fgsm_metrics_2.asr_list[0],
+            'test_ifgsm_small_acc': ifgsm_metrics_1.accuracy_list[0],
+            'test_ifgsm_small_auc': ifgsm_metrics_1.auc_list[0],
+            'test_ifgsm_small_asr': ifgsm_metrics_1.asr_list[0],
+            'test_ifgsm_med_acc': ifgsm_metrics_4.accuracy_list[0],
+            'test_ifgsm_med_auc': ifgsm_metrics_4.auc_list[0],
+            'test_ifgsm_med_asr': ifgsm_metrics_4.asr_list[0],
+            'test_ifgsm_big_acc': ifgsm_metrics_2.accuracy_list[0],
+            'test_ifgsm_big_auc': ifgsm_metrics_2.auc_list[0],
+            'test_ifgsm_big_asr': ifgsm_metrics_2.asr_list[0],
+            'test_pgd_small_acc': pgd_metrics_1.accuracy_list[0],
+            'test_pgd_small_auc': pgd_metrics_1.auc_list[0],
+            'test_pgd_small_asr': pgd_metrics_1.asr_list[0],
+            'test_pgd_med_acc': pgd_metrics_4.accuracy_list[0],
+            'test_pgd_med_auc': pgd_metrics_4.auc_list[0],
+            'test_pgd_med_asr': pgd_metrics_4.asr_list[0],
+            'test_pgd_big_acc': pgd_metrics_2.accuracy_list[0],
+            'test_pgd_big_auc': pgd_metrics_2.auc_list[0],
+            'test_pgd_big_asr': pgd_metrics_2.asr_list[0],
+            'status': 'ok'})
             
         out_dir = f'pgd_{mode}'
         os.makedirs(out_dir, exist_ok=True)
@@ -636,9 +662,9 @@ if __name__ == "__main__":
         elif mode == "baseline" and epsilon_scheduler == None:
             eps_sched_label = f"_fixed_eps_{epsilon}"
         elif mode == "ades":
-            mode = f"ades_{loss_type}-lambda_mean_{lambda_mean}"
+            mode = f"ades_{loss_type}_lambda_mean_{lambda_mean}"
         
-        with open(f'{out_dir}/grid_search_pgd_{mode}_{eps_sched_label}_lr_{lr}_{num_epochs}_alpha_{alpha_adv}_freeze.json', 'w') as f:
+        with open(f'{out_dir}/grid_search_pgd_{mode}_{eps_sched_label}_lr_{lr}_{num_epochs}_alpha_{alpha_adv}_freeze_norampup.json', 'w') as f:
             json.dump(results, f, indent=4)
     
         print(f"Clean acc: {val_clean_acc:.4f} | Adv acc: {val_adv_acc:.4f}")

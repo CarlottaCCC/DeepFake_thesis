@@ -1,0 +1,31 @@
+{
+    "epoch": 1,
+    "train_losses": null,
+    "train_auc_clean": [
+        0.9384763213734568
+    ],
+    "val_auc": [
+        0.9470454081632654
+    ],
+    "train_f1_clean": [
+        0.8504291543548614
+    ],
+    "val_f1": [
+        0.8673020527859238
+    ],
+    "train_precision_clean": [
+        0.8617051611063588
+    ],
+    "val_precision": [
+        0.8908132530120482
+    ],
+    "val_recall": [
+        0.845
+    ],
+    "train_accuracy_clean": [
+        0.8523611111111111
+    ],
+    "val_accuracy": [
+        0.8707142857142857
+    ]
+}
