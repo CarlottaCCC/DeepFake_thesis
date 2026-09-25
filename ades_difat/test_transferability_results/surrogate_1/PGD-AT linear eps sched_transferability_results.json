@@ -1,0 +1,23 @@
+[
+    {
+        "test_clean_acc": 0.75,
+        "test_clean_auc": 0.872974,
+        "test_clean_asr": 0,
+        "test_fgsm_acc": 0.663,
+        "test_fgsm_auc": 0.730996,
+        "test_fgsm_asr": 0.121,
+        "test_ti-fgsm_acc": 0.766,
+        "test_ti-fgsm_auc": 0.8678480000000001,
+        "test_ti-fgsm_asr": 0.062,
+        "test_di-fgsm_acc": 0.738,
+        "test_di-fgsm_auc": 0.826492,
+        "test_di-fgsm_asr": 0.05,
+        "test_mi-fgsm_acc": 0.735,
+        "test_mi-fgsm_auc": 0.82455,
+        "test_mi-fgsm_asr": 0.045,
+        "test_pgd_acc": 0.666,
+        "test_pgd_auc": 0.7542800000000001,
+        "test_pgd_asr": 0.084,
+        "status": "ok"
+    }
+]

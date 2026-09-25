@@ -1,6 +1,6 @@
 import os
 os.environ['MPLCONFIGDIR'] = "/work/project"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 from torchvision.models import resnet50, ResNet50_Weights
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -13,7 +13,7 @@ from utils import *
 os.environ.pop("SSLKEYLOGFILE", None)
 import foolbox as fb
 
-def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics, seed):
+def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed):
     train_loss = 0.0
     history = {}
     early_stopping = EarlyStopping(patience=100)
@@ -26,6 +26,15 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
     std=[1/0.229, 1/0.224, 1/0.225]
     )
 
+    fgsm = fb.attacks.FGSM()
+    
+    preprocessing = dict(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+            axis=-3  # per PyTorch (C, H, W)
+            )
+    fmodel = fb.PyTorchModel(model, bounds=(0,1), preprocessing=preprocessing, device=device)
+
 
     for epoch in range(start_epoch, num_epochs):
         #TRAINING
@@ -35,18 +44,19 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         freeze_bn(model)
         train_metrics_clean.reset_epoch()
         train_metrics_adv.reset_epoch()
-        val_metrics.reset_epoch()
+        val_metrics_clean.reset_epoch()
+        val_metrics_adv.reset_epoch()
 
         loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         for batch in loop:
             if batch is None:
                 continue
-            imgs_raw, y = batch
+            imgs_raw, y, _ = batch
             imgs_raw, y = imgs_raw.to(device), y.to(device).long().squeeze()
             
             # Clean Forward pass
             optimizer.zero_grad()
-            imgs_raw.requires_grad = True
+            #imgs_raw.requires_grad = True
             imgs = normalize(imgs_raw)
             logits_clean = model(imgs)
             loss_clean = criterion(logits_clean,y)
@@ -54,10 +64,14 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
             #ADVERSARIAL TRAINING on FGSM radom start (robust to gradient masking)
             #I compute the gradient respect to the image
             #How much does the clean_loss change if I change the input image
-            grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
-            imgs_adv = imgs_raw + epsilon * grad_imgs.sign()
-            imgs_adv = torch.clamp(imgs_adv, 0, 1)
+            #grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
+            #imgs_adv = imgs_raw + epsilon * grad_imgs.sign()
+            #imgs_adv = torch.clamp(imgs_adv, 0, 1)
             #imgs_adv = torch.clamp(imgs_adv, imgs - epsilon, imgs + epsilon)
+            model.eval()
+            _, imgs_adv, _ = fgsm(fmodel, imgs_raw, y, epsilons=epsilon)
+            model.train()
+            freeze_bn(model)
             imgs_adv = normalize(imgs_adv.detach())
             
             #Adversarial forward pass
@@ -95,14 +109,16 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         for batch in pbar:
             if batch is None:
                 continue
-            imgs_raw, y = batch
+            imgs_raw, y, _ = batch
             imgs_raw, y = imgs_raw.to(device), y.to(device).long().squeeze()
             # Adversarial validation
-            imgs_raw.requires_grad = True
+            #imgs_raw.requires_grad = True
             logits_clean = model(normalize(imgs_raw))
-            grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
-            imgs_adv = imgs_raw +  current_eps * grad_imgs.sign()
-            imgs_adv = torch.clamp(imgs_adv, 0, 1)
+            #grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
+            #imgs_adv = imgs_raw +  epsilon * grad_imgs.sign()
+            #imgs_adv = torch.clamp(imgs_adv, 0, 1)
+            _, imgs_adv, _ = fgsm(fmodel, imgs_raw, y, epsilons=epsilon)
+            #imgs_adv = normalize(imgs_adv.detach())
 
             with torch.no_grad():
                 logits_clean = model(normalize(imgs_raw))
@@ -150,7 +166,7 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         #if early_stopping(epoch_val_loss, model, optimizer, epoch, seed, "square", train_metrics_clean, train_metrics_adv, val_metrics, train_losses):
         #    break
 
-    model_path = f'{MODELS_DIR}/no_eps_scheduler/resnet50_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_3.pt'
+    model_path = f'{MODELS_DIR}/no_eps_scheduler/resnet50_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_FINAL.pt'
     ##SALVA I PESI DEL MODELLO
     torch.save({
         'epoch': epoch + 1,
@@ -195,12 +211,12 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         "val_recall_adv": val_metrics_adv.recall_list,
         "val_accuracy_adv": val_metrics_adv.accuracy_list,
         "train_asr": train_metrics_adv.asr_list,
-        "train_epsilon": current_eps
+        "train_epsilon": epsilon
     }
 
-    save_history_json(history,f"history/history_square/no_eps_scheduler/history_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_3.json")
+    save_history_json(history,f"history/history_square/no_eps_scheduler/history_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_FINAL.json")
 
-    return train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv train_losses
+    return train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses
 
 if __name__ == "__main__":
 
@@ -217,13 +233,18 @@ if __name__ == "__main__":
     )
     model = model.to(device)
     
+    #transform = transforms.Compose([
+    #    transforms.Resize((224, 224)),
+    #    transforms.ToTensor(),
+    #    transforms.Normalize(
+    #        mean=[0.485, 0.456, 0.406],
+    #        std=[0.229, 0.224, 0.225])
+    #   ])
+
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225])
-       ])
+        transforms.ToTensor()
+    ])
         
     print("Initializing training dataset....")
     train_dataset = FFDataset(root_dir=ROOT_DIR, split="train", transform=transform)
@@ -265,7 +286,8 @@ if __name__ == "__main__":
         )
     train_metrics_clean = Metrics()
     train_metrics_adv = Metrics()
-    val_metrics = Metrics()
+    val_metrics_clean = Metrics()
+    val_metrics_adv = Metrics()
     start_epoch = 0
     train_losses = []
 
@@ -317,12 +339,13 @@ if __name__ == "__main__":
     for eps in epsilons:
         train_metrics_clean = Metrics()
         train_metrics_adv = Metrics()
-        val_metrics = Metrics()
+        val_metrics_clean = Metrics()
+        val_metrics_adv = Metrics()
         start_epoch = 0
         train_losses = []
 
         print(f"Starting training with epsilon {eps}")
-        train_metrics_clean, train_metrics_adv, val_metrics, train_losses = train_robust_with_entropy(
+        train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust_with_entropy(
             model=model, 
             train_loader=train_loader, 
             val_loader=val_loader,
@@ -336,11 +359,12 @@ if __name__ == "__main__":
             train_losses=train_losses,
             train_metrics_clean=train_metrics_clean,
             train_metrics_adv=train_metrics_adv,
-            val_metrics=val_metrics,
+            val_metrics_clean=val_metrics_clean,
+            val_metrics_adv=val_metrics_adv,
             seed=seed) 
 
-        plot_roc(val_metrics.fpr, val_metrics.tpr, val_metrics.auc_list[11], 12, 
-                     f"plots/square/ROC_plot_numepochs_11_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}_None_sched.png")
+        #plot_roc(val_metrics_adv.fpr, val_metrics_adv.tpr, val_metrics_adv.auc_list[11], 12, 
+        #             f"plots/square/ROC_plot_numepochs_11_LR_{LR}_batchsize{BATCH_SIZE}_WD_{WD}_EPS_{eps}_None_sched.png")
         
         #folder_name = "square"
         #file_name = ""

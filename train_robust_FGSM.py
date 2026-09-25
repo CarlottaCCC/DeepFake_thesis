@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from utils import *
 import foolbox as fb
 
-def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics, seed):
+def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed):
     train_loss = 0.0
     history = {}
     early_stopping = EarlyStopping(patience=100)
@@ -28,6 +28,15 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
     
     type = 'None'
     eps_scheduler = EpsilonScheduler(eps_start=0/255, eps_end=8/255, num_epochs_rampup=10, type=type)
+
+    fgsm = fb.attacks.FGSM()
+
+    preprocessing = dict(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+            axis=-3  # per PyTorch (C, H, W)
+            )
+    fmodel = fb.PyTorchModel(model, bounds=(0,1), preprocessing=preprocessing, device=device)
     
 
     for epoch in range(start_epoch, num_epochs):
@@ -40,21 +49,22 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         freeze_bn(model)
         train_metrics_clean.reset_epoch()
         train_metrics_adv.reset_epoch()
-        val_metrics.reset_epoch()
+        val_metrics_clean.reset_epoch()
+        val_metrics_adv.reset_epoch()
         print(f"Epoch {epoch+1} | eps: {epsilon:.4f}")
 
         loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         for batch in loop:
             if batch is None:
                 continue
-            imgs_raw, y = batch
+            imgs_raw, y, _ = batch
             imgs_raw, y = imgs_raw.to(device), y.to(device).long().squeeze()
             #print(f"imgs_raw min/max: {imgs_raw.min():.3f}/{imgs_raw.max():.3f}")
             #print(f"imgs min/max: {imgs.min():.3f}/{imgs.max():.3f}")
 
             # Clean Forward pass
             optimizer.zero_grad()
-            imgs_raw.requires_grad = True
+            #imgs_raw.requires_grad = True
             imgs = normalize(imgs_raw)
             logits_clean = model(imgs)
             loss_clean = criterion(logits_clean,y)
@@ -62,10 +72,14 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
             #ADVERSARIAL TRAINING on FGSM 
             #I compute the gradient respect to the image
             #How much does the clean_loss change if I change the input image
-            grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
-            imgs_adv = imgs_raw +  current_eps * grad_imgs.sign()
-            imgs_adv = torch.clamp(imgs_adv, 0, 1)
+            #grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
+            #imgs_adv = imgs_raw +  current_eps * grad_imgs.sign()
+            #imgs_adv = torch.clamp(imgs_adv, 0, 1)
             #imgs_adv = torch.clamp(imgs_adv, imgs - current_eps, imgs + current_eps)
+            model.eval() # I need model.eval() otherwise dropout is active and makes the attack noisier
+            _, imgs_adv, _ = fgsm(fmodel, imgs_raw, y, epsilons=epsilon)
+            model.train()
+            freeze_bn(model)
             imgs_adv = normalize(imgs_adv.detach())
             
             # I compute again the clean loss with fresh graph
@@ -105,14 +119,15 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         for batch in pbar:
             if batch is None:
                 continue
-            imgs_raw, y = batch
+            imgs_raw, y, _ = batch
             imgs_raw, y = imgs_raw.to(device), y.to(device).long().squeeze()
             # Adversarial validation
-            imgs_raw.requires_grad = True
+            #imgs_raw.requires_grad = True
             logits_clean = model(normalize(imgs_raw))
-            grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
-            imgs_adv = imgs_raw +  current_eps * grad_imgs.sign()
-            imgs_adv = torch.clamp(imgs_adv, 0, 1)
+            #grad_imgs = torch.autograd.grad(loss_clean, imgs_raw, retain_graph=True, create_graph=False)[0]
+            #imgs_adv = imgs_raw +  current_eps * grad_imgs.sign()
+            #imgs_adv = torch.clamp(imgs_adv, 0, 1)
+            _, imgs_adv, _ = fgsm(fmodel, imgs_raw, y, epsilons=epsilon)
 
             with torch.no_grad():
                 logits_clean = model(normalize(imgs_raw))
@@ -151,7 +166,7 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         #if early_stopping(val_metrics.accuracy_list[epoch], model, optimizer, epoch, seed, eps_scheduler.type, "fgsm", train_metrics_clean, train_metrics_adv, val_metrics, train_losses, current_eps):
         #    break
 
-    save_path =  f'{MODELS_DIR}/no_eps_scheduler/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}_{eps_scheduler.type}_sched_3.pt'
+    save_path =  f'{MODELS_DIR}/no_eps_scheduler/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}.pt'
     torch.save({
         'epoch': epoch + 1,
         'model_state_dict': model.state_dict(),
@@ -197,7 +212,7 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         "train_asr": train_metrics_adv.asr_list,
         "train_epsilon": current_eps
     }
-    save_history_json(history,f"history/history_fgsm/no_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}_{eps_scheduler.type}_sched_3.json")
+    save_history_json(history,f"history/history_fgsm/no_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}.json")
     
 
     return train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses
@@ -269,7 +284,8 @@ if __name__ == "__main__":
         )
         train_metrics_clean = Metrics()
         train_metrics_adv = Metrics()
-        val_metrics = Metrics()
+        val_metrics_clean = Metrics()
+        val_metrics_adv = Metrics()
         start_epoch = 0
         train_losses = []
     
@@ -321,12 +337,13 @@ if __name__ == "__main__":
         for eps in epsilons:
             train_metrics_clean = Metrics()
             train_metrics_adv = Metrics()
-            val_metrics = Metrics()
+            val_metrics_clean = Metrics()
+            val_metrics_adv = Metrics()
             start_epoch = 0
             train_losses = []
 
             print(f"Starting training with epsilon {eps}")
-            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv,tt train_losses = train_robust(
+            train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
                 model=model, 
                 train_loader=train_loader, 
                 val_loader=val_loader,
@@ -340,6 +357,7 @@ if __name__ == "__main__":
                 train_losses=train_losses,
                 train_metrics_clean=train_metrics_clean,
                 train_metrics_adv=train_metrics_adv,
-                val_metrics=val_metrics,
+                val_metrics_clean=val_metrics_clean,
+                val_metrics_adv=val_metrics_adv,
                 seed=seed)
         

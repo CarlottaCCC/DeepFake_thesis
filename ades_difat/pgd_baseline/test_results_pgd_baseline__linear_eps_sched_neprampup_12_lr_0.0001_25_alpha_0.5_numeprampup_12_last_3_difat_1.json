@@ -1,0 +1,38 @@
+Qui ha fatto il check della probabilità di difat AD OGNI EPOCA, invece che ad ogni batch, quindi ha deciso 
+se p<=0.25 scelgo difat per tutta l'epoca, che però ci può stare ma dovrei scegliere un numero di epoche fisse
+QUI AVEVA FATTO DIFAT PER UN'EPOCA
+[
+    {
+        "test_clean_acc": 0.753,
+        "test_clean_auc": 0.876168,
+        "test_clean_asr": 0,
+        "test_fgsm_small_acc": 0.617,
+        "test_fgsm_small_auc": 0.655426,
+        "test_fgsm_small_asr": 0.138,
+        "test_fgsm_med_acc": 0.513,
+        "test_fgsm_med_auc": 0.439168,
+        "test_fgsm_med_asr": 0.244,
+        "test_fgsm_big_acc": 0.322,
+        "test_fgsm_big_auc": 0.170112,
+        "test_fgsm_big_asr": 0.445,
+        "test_ifgsm_small_acc": 0.606,
+        "test_ifgsm_small_auc": 0.614696,
+        "test_ifgsm_small_asr": 0.147,
+        "test_ifgsm_med_acc": 0.447,
+        "test_ifgsm_med_auc": 0.318662,
+        "test_ifgsm_med_asr": 0.306,
+        "test_ifgsm_big_acc": 0.196,
+        "test_ifgsm_big_auc": 0.062862,
+        "test_ifgsm_big_asr": 0.557,
+        "test_pgd_small_acc": 0.606,
+        "test_pgd_small_auc": 0.6140439999999999,
+        "test_pgd_small_asr": 0.147,
+        "test_pgd_med_acc": 0.448,
+        "test_pgd_med_auc": 0.32004200000000005,
+        "test_pgd_med_asr": 0.305,
+        "test_pgd_big_acc": 0.226,
+        "test_pgd_big_auc": 0.070738,
+        "test_pgd_big_asr": 0.527,
+        "status": "ok"
+    }
+]

@@ -125,7 +125,7 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
             if technique_rng.random() < p_difat:
                 imgs_adv_raw = dpgd_attack(
                     model, imgs_raw.detach(), y, eps, alpha, steps,
-                    purifier=difat_purifier, margin_c=difat_margin_c,
+                    purifier=difat_purifier, normalize=normalize, margin_c=difat_margin_c,
                     control_factor_tau=difat_tau,
                 )
                 sigma = None
@@ -166,12 +166,11 @@ def difat(model, train_loader, val_loader, start_epoch, num_epochs, optimizer, L
         train_results_adv = train_metrics_adv.compute()
         train_metrics_adv.attack_success_rate(train_metrics_clean.all_probs)
 
-        eps_stats["target_eps"].append(eps)
-        eps_stats["mean"].append(epoch_eps.mean().item())
-        eps_stats["std"].append(epoch_eps.std().item())
-        eps_stats["min"].append(epoch_eps.min().item())
-        eps_stats["max"].append(epoch_eps.max().item())
-        eps_stats["median"].append(epoch_eps.median().item())
+        eps_stats["mean"].append(np.mean(eps_epoch_list))
+        eps_stats["std"].append(np.std(eps_epoch_list))
+        eps_stats["min"].append(min(eps_epoch_list))
+        eps_stats["max"].append(min(eps_epoch_list))
+        eps_stats["median"].append(np.median(eps_epoch_list))
         
         print(eps_stats)
     
@@ -415,7 +414,7 @@ if __name__ == "__main__":
         val_metrics_clean=val_metrics_clean,
         val_metrics_adv=val_metrics_adv,
         lr=params["lr"],
-        epsilon_scheduler=None,
+        epsilon_scheduler=epsilon_scheduler,
         seed=seed,
         difat_purifier=difat_purifier,
         difat_margin_c=difat_margin_c,

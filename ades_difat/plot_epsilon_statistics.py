@@ -2,9 +2,9 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 
 def plot_epsilon_statistics(eps_stats, lambda_mean, save_path):
@@ -117,13 +117,47 @@ def plot_epsilon_convergence(eps_stats, lambda_mean, save_path):
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
 
+def get_epsilon(epoch, num_epochs_rampup, eps_start, eps_end, sched_type):
+    t = min(epoch / num_epochs_rampup, 1.0)  # clamp to [0,1]
+    
+    # Linear: slow and steady
+    linear = eps_start + (eps_end - eps_start) * t
+
+    # Cosine: gentler start, faster finish
+    cosine = eps_start + (eps_end - eps_start) * (1 - math.cos(math.pi * t)) / 2
+
+    # Exponential: very gentle start
+    exponential = eps_start + (eps_end - eps_start) * (t ** 2)
+    if sched_type == 'linear':
+        return linear
+    elif sched_type == 'cosine':
+        return cosine
 
 
-with open("history/history_pgdat_ades_difat/history_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_freeze.json", "r") as f:
-    stats = json.load(f)
+def plot_scheduler(values, save_path, title, xlabel="Epochs", ylabel="Epsilon values"):
+    """
+    Plot the values of a numerical list.
 
-loss_label = "MAXLOSS"
-lambda_mean = stats["lambda_mean"]
+    Args:
+        values (list): List of numerical values to plot.
+        title (str): Title of the plot.
+        xlabel (str): Label for the x-axis.
+        ylabel (str): Label for the y-axis.
+    """
+    plt.figure(figsize=(8, 5))
+    plt.plot(values, marker='o')
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
+#with open("history/history_pgdat_ades_difat/history_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_freeze.json", "r") as f:
+#    stats = json.load(f)
+#
+#loss_label = "MAXLOSS"
+#lambda_mean = stats["lambda_mean"]
 
 #save_path_1 = f"plots/eps_stats_{loss_label}_lambda_mean_{lambda_mean}_numepochs_25.png"
 #save_path_2 = f"plots/eps_mean_{loss_label}_lambda_mean_{lambda_mean}_num_epochs_25.png"
@@ -131,5 +165,13 @@ lambda_mean = stats["lambda_mean"]
 save_path_1 = f"plots/eps_stats_baseline_numepochs_25.png"
 save_path_2 = f"plots/eps_mean_baseline_num_epochs_25.png"
 
-plot_epsilon_statistics(stats["eps_stats"], lambda_mean, save_path_1)
-plot_epsilon_convergence(stats["eps_stats"], lambda_mean, save_path_2)
+epsilon_list = []
+
+num_epochs = 25
+for epoch in range(num_epochs):
+    eps = get_epsilon(epoch, num_epochs, 0/255, 8/255, "cosine")
+    epsilon_list.append(eps)
+
+plot_scheduler(epsilon_list, save_path="plots/generic_cosine_eps_scheduler.png", title="Cosine Epsilon Scheduler Plot")
+#plot_epsilon_statistics(stats["eps_stats"], lambda_mean, save_path_1)
+#plot_epsilon_convergence(stats["eps_stats"], lambda_mean, save_path_2)

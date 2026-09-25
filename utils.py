@@ -16,7 +16,7 @@ from torch.utils.data import Subset
 from torchvision import transforms
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet50, ResNet50_Weights, resnet18, ResNet18_Weights
 #CONTAINER COMMANDS
 
 # models path: /mnt/hdd1/ciani/models/server_models:/models/
@@ -27,6 +27,7 @@ podman run -it -v /home/ciani/tesi_server/deepfake:/work/project/ -v /mnt/hdd1/c
 '''
 
 '''
+cd /work/project
 tmux session
 tmux ls
 tmux attach -t ID
@@ -87,6 +88,7 @@ class Metrics:
         self.total_linf = 0
         self.avg_l2 = 0
         self.avg_linf = 0
+        self.correct_adv_accuracy = 0
         self.train_losses = []
         self.accuracy_list = []
         self.precision_list = []
@@ -95,6 +97,8 @@ class Metrics:
         self.f1_list = []
         self.all_probs = []
         self.all_labels = []
+        self.all_probs_to_attack = []
+        all_labels_to_attack = []
         self.asr_list = []
         self.history = {}
     
@@ -175,7 +179,7 @@ def get_data_loaders(transform, batch_size):
     print("Initializing training dataset....")
     train_dataset = FFDataset(root_dir=ROOT_DIR, split="train", transform=transform)
     # I get a small subset for debugging
-    #train_small, _ = balanced_subset(train_dataset, n_per_class=30)
+    train_small, _ = balanced_subset(train_dataset, n_per_class=10)
     
     #print(train_dataset.getitem(0))
     print("Initializing validation dataset....")
@@ -186,6 +190,7 @@ def get_data_loaders(transform, batch_size):
     #    sampled_test_set_paths = json.loads(f.read())
     #test_small = get_imgs_by_filepath(test_dataset, sampled_test_set_paths)
     test_small, _ = balanced_subset(test_dataset, n_per_class=500)
+    val_small, _ = balanced_subset(val_dataset, n_per_class=10)
     
     print("Initializing train loader...")
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -897,4 +902,18 @@ def reset_checkpoint_simple(checkpoint_path, device):
     )
 
     return model, criterion, optimizer, scheduler
+
+def reset_model(checkpoint_path, device):
+    model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+    # I modify the last layer for binary classification
+    model.fc = nn.Sequential(
+    nn.Dropout(DROPOUT),
+    nn.Linear(model.fc.in_features, 2)
+    )
+    model = model.to(device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+
+    model.load_state_dict(checkpoint['model_state_dict'])
+
+    return model
 

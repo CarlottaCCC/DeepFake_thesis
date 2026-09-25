@@ -16,6 +16,7 @@ class FFDataset(Dataset):
         self.transform = transform
         self.split_file = f"{root_dir}/splits/{split}.json"
         self.samples = []
+        self.id_to_idx = {img_id: i for i, (_, _, img_id) in enumerate(self.samples)}
 
         with open(self.split_file, 'r') as f:
             video_ids = json.load(f)
@@ -67,4 +68,8 @@ class FFDataset(Dataset):
             image = self.transform(image)
 
         return image, label, img_id
+
+    def get_by_id(self, img_id):
+            idx = self.id_to_idx[img_id]
+            return self[idx] 
     

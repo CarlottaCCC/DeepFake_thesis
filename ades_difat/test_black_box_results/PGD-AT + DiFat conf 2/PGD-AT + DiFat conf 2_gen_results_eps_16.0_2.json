@@ -1,0 +1,11 @@
+[
+    {
+        "test_clean_acc": 1.0,
+        "test_clean_auc": 1.0,
+        "test_clean_asr": 0,
+        "test_gen_acc": 0.9865951742627346,
+        "test_gen_auc": 0.9958549303690751,
+        "test_gen_asr": 0.013404825737265416,
+        "status": "ok"
+    }
+]

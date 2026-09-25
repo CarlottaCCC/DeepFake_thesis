@@ -12,27 +12,11 @@ import torch.optim as optim
 from art.estimators.classification import PyTorchClassifier
 import csv
 from attacks import *
-from attacks_implementation.nes import nes_attack
+from attacks_implementation.nes import nes_attack, nes_attack_first_v
 from attacks_implementation.jsma_accurate import tjsma_binary, wjsma_binary, wjsma_binary_debug
 from attacks_implementation.autozoom import AutoZOOMAttack
 from attacks_implementation.ifgsm import ifgsm_attack
-
-def standard_pgd_attack(model, x, y, eps, alpha, steps, normalize, clamp_min=0.0, clamp_max=1.0):
-    """Your existing fixed-epsilon PGD-AT attack, as the baseline mode."""
-    delta = torch.empty_like(x).uniform_(-eps, eps)
-    delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
-    delta = delta.detach().requires_grad_(True)
- 
-    for _ in range(steps):
-        logits = model(normalize(x + delta))
-        loss = F.cross_entropy(logits, y)
-        grad = torch.autograd.grad(loss, delta)[0]
-        delta = delta.detach() + alpha * grad.sign()
-        delta = torch.clamp(delta, -eps, eps)
-        delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
-        delta.requires_grad_(True)
- 
-    return torch.clamp(x + delta.detach(), clamp_min, clamp_max)
+from attacks_implementation.genattack import GenAttack
 
 
 def test_attack(model, test_loader, attack_type, epsilon, library, model_name, model_data, attack_label_data, device, save_results=True):
@@ -62,15 +46,35 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
         [0.485, 0.456, 0.406],  # mean ImageNet
         [0.229, 0.224, 0.225]   # std ImageNet
     ),
-    device_type="gpu"
+    device_type=device
     )
 
     #black box model wrapper for AutoZOOm attack
-    model_fn = make_model_fn(model, device='cuda')
+    model_fn = make_model_fn(model, device=device)
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225])
-    
+
+    attack_fn = None
+
+    if attack_type == 'square':
+            attack_fn = SquareAttack(
+            estimator=classifier,
+            norm=np.inf,     
+            eps=epsilon,
+            max_iter=5000,
+            p_init=0.8,
+            nb_restarts=1,
+            batch_size=32
+            )
+
+    elif attack_type == 'genattack':
+        attack_fn = GenAttack(
+            model=model, device=device, eps=epsilon,
+            population_size=6, max_queries=5000,
+            reduced_dim=56,          # 4x reduction on each spatial dim, matches paper's ratio choice
+            upsample_mode="nearest", # paper's default
+        )
     print(f"Starting {attack_type} test!")
     pbar = tqdm(test_loader, desc=f"Testing", unit="batch")
     for batch in pbar:
@@ -80,6 +84,18 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
         imgs, labels = imgs.to(device), labels.to(device).long().squeeze()
         batch_size = imgs.size(0)
         #print(y.shape, y.dtype)
+        norm_imgs = normalize(imgs)
+
+        with torch.no_grad():
+            clean_preds = model(norm_imgs).argmax(1)
+        clean_correct_mask = (clean_preds == labels)
+    
+        # Only attack examples the model already gets right
+        imgs_correct = imgs[clean_correct_mask]
+        labels_correct = labels[clean_correct_mask]
+
+        imgs_incorrect = imgs[~clean_correct_mask]
+        labels_incorrect = labels[~clean_correct_mask]
 
         # ATTACKS
         #if attack_type == 'fgsm' and library == 'None':
@@ -114,25 +130,38 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
             # ART returns numpy, need to convert imgs_square to tensor to pass it to the model
             imgs_adv = normalize(imgs_adv.detach())
             imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
-        elif library == 'foolbox' and attack_type == 'genattack':
-            # CHIAVE: Crea target labels (classe opposta per classificazione binaria)
-            target_labels = 1 - labels  # Se binario: 0→1, 1→0
-            # Crea criterion TARGETED 
-            criterion = fb.criteria.TargetedMisclassification(target_labels)
-            attack_fn = get_attack_foolbox(attack_type)
-            eps = epsilon
-            _, imgs_adv, _ = attack_fn(fmodel, imgs, criterion, epsilons=eps)
-            imgs_adv = normalize(imgs_adv.detach())
 
         elif attack_type == 'nes' and library == 'None':
-            imgs_adv = nes_attack(model, imgs, labels, device=device)
+            imgs_adv = nes_attack_first_v(model, imgs_correct, labels_correct, eps=epsilon, 
+                                  sigma=0.001, n_samples=50, step_size=2/255, 
+                                  n_iters=100, device=device)
+
             imgs_adv = normalize(imgs_adv.detach())
+        elif attack_type == 'square' and library == 'None':
+             imgs_adv = attack_fn.generate(x=imgs_correct.cpu().numpy(), y=labels_correct.cpu().numpy())
+             # ART returns numpy, need to convert imgs_square to tensor to pass it to the model
+             imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
+             imgs_adv = normalize(imgs_adv.detach())
+        elif attack_type == 'genattack' and library == 'None':
+             imgs_adv, success, n_queries = attack_fn.attack_batch(imgs_correct,labels_correct)
+             imgs_adv = normalize(imgs_adv.detach())
+             
+        #elif library == 'foolbox' and attack_type == 'genattack':
+        #    # CHIAVE: Crea target labels (classe opposta per classificazione binaria)
+        #    target_labels = 1 - labels  # Se binario: 0→1, 1→0
+        #    # Crea criterion TARGETED 
+        #    criterion = fb.criteria.TargetedMisclassification(target_labels)
+        #    attack_fn = get_attack_foolbox(attack_type)
+        #    eps = epsilon
+        #    _, imgs_adv, _ = attack_fn(fmodel, imgs, criterion, epsilons=eps)
+        #    imgs_adv = normalize(imgs_adv.detach())
 
         #normalize
-        imgs = normalize(imgs.detach())
+        imgs = normalize(imgs_correct.detach())
 
         # compute L2 and Linf metrics
-        delta = imgs_adv - imgs
+        #delta = imgs_adv - imgs
+        delta = imgs_adv - imgs_correct
         l2, linf = batch_norms(delta)
         adv_metrics.total_l2 += l2.sum().item()
         adv_metrics.total_linf += linf.sum().item()
@@ -149,10 +178,13 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
 
             probs_clean = torch.softmax(logits_clean, dim=1)[:,1].detach().cpu().numpy()
             #debug
-            preds = torch.argmax(logits_clean, dim=1)
-            clean_metrics.update(labels, probs_clean)
+            preds_clean = torch.argmax(logits_clean, dim=1)
+            preds_adv = torch.argmax(logits_adv, dim=1)
+            clean_metrics.update(labels_correct, probs_clean)
             probs_adv = torch.softmax(logits_adv, dim=1)[:,1].detach().cpu().numpy()
-            adv_metrics.update(labels, probs_adv)
+            adv_metrics.update(labels_correct, probs_adv)
+
+        #correct_adv += (preds_adv == y_to_attack).sum().item()
 
         total_samples += batch_size
     
@@ -164,6 +196,7 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
    
     clean_results = clean_metrics.compute()
     adv_results = adv_metrics.compute()
+    #adv_metrics.correct_adv_accuracy = correct_adv
     
     print("CLEAN RESULTS")
     clean_metrics.print(0)

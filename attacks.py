@@ -16,6 +16,7 @@ from art.attacks.evasion import (
     SquareAttack,           # Square Attack
     ZooAttack              # ZOO
 )
+print(fb.__version__)
 from attacks_implementation.nes_2 import *
 from attacks_implementation.autozoom_bilin import *
 
@@ -71,6 +72,23 @@ def make_model_fn(model: nn.Module, device: str = 'cpu'):
 #    elif attack_type == 'ifgsm':
 #        _, imgs_ifgsm, _ = ifgsm(model, imgs, labels, epsilons=EPS_IFGSM)
 #        return normalize(imgs_ifgsm)
+
+def standard_pgd_attack(model, x, y, eps, alpha, steps, normalize, clamp_min=0.0, clamp_max=1.0):
+    """Your existing fixed-epsilon PGD-AT attack, as the baseline mode."""
+    delta = torch.empty_like(x).uniform_(-eps, eps)
+    delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
+    delta = delta.detach().requires_grad_(True)
+ 
+    for _ in range(steps):
+        logits = model(normalize(x + delta))
+        loss = F.cross_entropy(logits, y)
+        grad = torch.autograd.grad(loss, delta)[0]
+        delta = delta.detach() + alpha * grad.sign()
+        delta = torch.clamp(delta, -eps, eps)
+        delta = torch.clamp(x + delta, clamp_min, clamp_max) - x
+        delta.requires_grad_(True)
+ 
+    return torch.clamp(x + delta.detach(), clamp_min, clamp_max)
 
 def rs_fgsm(current_eps, model, imgs_raw, y):
     with torch.enable_grad():
@@ -134,9 +152,6 @@ def get_attack_art(attack_type, classifier):
             use_resize=True
         )
         return zoo
-    elif attack_type == 'jsma':
-        jsma = SaliencyMapMethod(classifier=classifier, batch_size=64)
-        return jsma
 
     elif attack_type == 'autozoom':
         autozoom = AutoZoomBilin(
@@ -166,7 +181,7 @@ def get_attack(attack_type, model):
         stepsize=1/255,
         nes_samples=20,
         sample_per_draw=20,
-        max_queries=1000,
+        max_queries=100,
         search_sigma=0.02,
         target=True
     )

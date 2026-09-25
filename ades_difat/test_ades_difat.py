@@ -19,12 +19,14 @@ from ades import LearnableEpsilonScheduler, compute_adaptive_epsilon, pgd_attack
 from difat import DiffusionPurifier, dpgd_attack
 
 
-#model_name_list = [{"model_name":"resnet50_pgdat_ades_MAXLOSS_LINEAR_TARGET_lambda_mean_8.0__lr_0.001_seed_42_epochs_40_freeze.pt", "mode":"ades", "lambda_mean":8, "loss_type":"MAXLOSS_LINEAR_TARGET", "num_epochs":40},
+#model_name_list = [
+#                   {"model_name":"resnet50_pgdat_ades_MAXLOSS_LINEAR_TARGET_lambda_mean_8.0__lr_0.001_seed_42_epochs_40_freeze.pt", "mode":"ades", "lambda_mean":8, "loss_type":"MAXLOSS_LINEAR_TARGET", "num_epochs":40},
 #                   {"model_name":"resnet50_pgdat_ades_MAXLOSS_LINEAR_TARGET_lambda_mean_8.0__lr_0.001_seed_42_epochs_25_freeze.pt", "mode":"ades", "lambda_mean":8, "loss_type":"MAXLOSS_LINEAR_TARGET", "num_epochs":25},
 #                   {"model_name":"resnet50_pgdat_ades_MAXLOSS_LINEAR_TARGET_lambda_mean_8.0__lr_0.001_seed_42_epochs_15_freeze.pt", "mode":"ades", "lambda_mean":8, "loss_type":"MAXLOSS_LINEAR_TARGET", "num_epochs":15},
 #                   {"model_name":"resnet50_pgdat_baseline__linear_eps_sched_numeprampup20_lr_0.001_seed_42_epochs_40_freeze_2.pt", "mode":"baseline", "num_epochs":40},
 #                   {"model_name":"resnet50_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_freeze.pt", "mode":"baseline", "num_epochs":25}]
-model_name_list = [{"model_name":"resnet50_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_freeze.pt", "mode":"baseline", "num_epochs":25}]
+#model_name_list = [{"model_name":"resnet50_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_freeze.pt", "mode":"baseline", "num_epochs":25}]
+model_name_list = [{"model_name":"resnet50_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_numeprampup_8_last_3_difat.pt", "mode":"baseline_difat", "num_epochs":25}]
 
 #model_name_list = [{"model_name":"resnet50_clean_epoch_12_LR_0.0001_batchsize_32_WD_0.01_aug.pt", "mode":"clean_mmodel", "lambda_mean":0, "loss_type":"None", "num_epochs":40}]
 

@@ -1,0 +1,12 @@
+[
+    {
+        "test_clean_acc": 1.0,
+        "test_clean_auc": 1.0,
+        "test_clean_asr": 0,
+        "test_nes_acc": 0.9906666666666667,
+        "test_nes_auc": 0.9998451724778598,
+        "test_nes_asr": 0.009333333333333334,
+        "correct_adv_accuracy": 0,
+        "status": "ok"
+    }
+]
