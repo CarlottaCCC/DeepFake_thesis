@@ -2,18 +2,6 @@
 GenAttack: Practical Black-box Attacks with Gradient-Free Optimization
 Alzantot et al., 2019 (GECCO) — https://arxiv.org/abs/1805.11090
 
-Implements Algorithm 1 from the paper, including the two ImageNet-scale
-optimizations from Section 4.1:
-  1. Dimensionality reduction: the population is searched as a delta in a
-     smaller (reduced_dim x reduced_dim) noise space and upsampled to the
-     input resolution before being applied/evaluated. Set reduced_dim=None
-     to disable this and search directly in pixel space (matches their
-     CIFAR-10/MNIST setup, which used no reduction).
-  2. Adaptive parameter scaling: rho (mutation probability) and alpha
-     (mutation range) decay when the search plateaus (Eqs. 1-2).
-
-Written for a binary classifier (e.g. real/fake deepfake detection), where
-"targeted" attack naturally reduces to "attack toward the other class."
 """
 
 import torch

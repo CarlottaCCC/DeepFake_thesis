@@ -5,22 +5,6 @@ Reference: "Learnable Dynamic Epsilon Scheduling for Instance-Aware Adversarial
 Training" (arXiv:2506.12733). Original paper operates on CIFAR-10/100 with
 WideResNet; this module adapts the mechanism to a binary deepfake detector
 (ResNet50) with PGD as the inner attack.
- 
-Core idea: instead of one fixed epsilon for every sample, a small learnable MLP
-(the "scheduler") fuses three per-sample signals -- gradient norm, prediction
-entropy, and MC-dropout uncertainty -- into a scalar in [0, 1] that sets the
-sample's own perturbation budget: eps_x = eps_min + lambda * scheduler(signals).
- 
-IMPORTANT ARCHITECTURE REQUIREMENT
------------------------------------
-MC-dropout uncertainty requires at least one nn.Dropout layer in the model
-(commonly inserted right before the final classification layer). If your
-ResNet50 doesn't already have one, add e.g.:
-    model.fc = nn.Sequential(nn.Dropout(p=0.3), model.fc)
-before using this module. Without it, `estimate_mc_uncertainty` will return
-all-zero uncertainty (dropout has no effect), which silently degrades ADES to
-a 2-signal (gradient norm + entropy) scheduler -- still usable, just weaker
-than the paper's 3-signal version.
 """
  
 import torch

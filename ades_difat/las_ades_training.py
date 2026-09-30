@@ -1,16 +1,4 @@
-"""
-PGD-AT training loop supporting three attack modes:
-  - "baseline": standard fixed-epsilon PGD-AT
-  - "ades":     ADES learnable per-sample epsilon scheduler (pgd_at_ades.py)
-  - "difat":    DPGD + diffusion purification (pgd_at_difat.py)
- 
-Kept as ONE shared loop (rather than three duplicated ~300-line copies) so the
-metrics/timing/history-saving conventions from your existing pipeline stay in
-exactly one place. The two mechanisms remain independently usable: pass
-mode="ades" or mode="difat" to run either alone; a "combined" mode is a
-straightforward extension once you've validated each independently (swap the
-adaptive-eps output from ADES into dpgd_attack's `eps` argument per-sample).
-"""
+
 import os
 os.environ['MPLCONFIGDIR'] = "/work/project"
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"

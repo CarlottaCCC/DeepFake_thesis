@@ -15,19 +15,6 @@ def nes_attack(
     clip_max=1.0,
     device="cuda"
 ):
-    """
-    NES-based black-box attack (L∞ constrained)
-
-    Args:
-        model: trained classifier (outputs logits or probabilities)
-        x: input tensor (1,C,H,W)
-        target_label: int (target class index)
-        epsilon: L∞ bound
-        alpha: step size
-        sigma: noise scale for NES
-        nes_samples: number of noise samples per iteration
-        nes_iters: number of attack iterations
-    """
 
     model.eval()
     x = x.to(device)

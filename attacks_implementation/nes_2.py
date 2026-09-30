@@ -2,39 +2,11 @@ import torch
 import numpy as np
 
 class NES(object):
-    ''' Natural Evolution Strategies (NES). A black-box constraint-based method. Use NES as gradient estimation
-    technique and employ PGD with this estimated gradient to generate the adversarial example.
 
-    Example:
-        >>> from ares.utils.registry import registry
-        >>> attacker_cls = registry.get_attack('nes')
-        >>> attacker = attacker_cls(model)
-        >>> adv_images = attacker(images, labels, target_labels)
-
-    - Supported distance metric: 1, 2, np.inf.
-    - References:
-      1. https://arxiv.org/abs/1804.08598.
-      2. http://www.jmlr.org/papers/volume15/wierstra14a/wierstra14a.pdf.
-    '''
     
     def __init__(self, model, device='cuda', norm=np.inf, eps=4/255, stepsize=1/255, nes_samples=10, sample_per_draw=1, 
                  max_queries=1000, search_sigma=0.02, decay=0.00, random_perturb_start=False, target=False):
-        '''The initialize function for NES.
-
-        Args:
-            model (torch.nn.Module): The target model to be attacked.
-            device (torch.device): The device to perform autoattack. Defaults to 'cuda'.
-            norm (float): The norm of distance calculation for adversarial constraint. Defaults to np.inf.
-            eps (float): The maximum perturbation range epsilon.
-            stepsize (float): The step size for each attack iteration. Defaults to 1/255.
-            nes_samples (int): The samples for NES.
-            sample_per_draw (int): Sample in each draw.
-            max_queries (int): Maximum query number.
-            search_sigma (float): The sigma param for searching.
-            decay (float): Decay rate.
-            random_perturb_start (bool): Whether start with random perturbation.
-            target (bool): Conduct target/untarget attack. Defaults to False.
-        '''
+        
         self.model = model
         self.p = norm
         self.epsilon = eps
@@ -56,7 +28,7 @@ class NES(object):
     
     
     def _is_adversarial(self,x, y, y_target):
-        '''The function to judge if the input image is adversarial.'''
+        
         output = torch.argmax(self.model(x), dim=1)
         if self.target:
             return output == y_target
@@ -65,7 +37,7 @@ class NES(object):
     
 
     def _margin_logit_loss(self, x, labels, target_labels):
-        '''The function to calculate the marginal logits.'''
+        
         outputs = self.model(x)
         if self.target:
             one_hot_labels = torch.eye(len(outputs[0])).to(self.device)[target_labels]
@@ -81,7 +53,7 @@ class NES(object):
 
     
     def clip_eta(self, batchsize, eta, norm, eps):
-        '''The function to clip image according to the constraint.'''
+        
         if norm == np.inf:
             eta = torch.clamp(eta, -eps, eps)
         elif norm == 2:
@@ -97,7 +69,7 @@ class NES(object):
 
     
     def nes_gradient(self, x, y, ytarget):
-        '''The function to calculate the gradient of NES.'''
+        
         x_shape = x.size()
         g = torch.zeros(x_shape).to(self.device)
         mean = torch.zeros(x_shape).to(self.device)
@@ -116,7 +88,7 @@ class NES(object):
 
     
     def nes(self, x_victim, y_victim, y_target):
-        '''The attack process of NES.'''
+       
         batchsize = x_victim.shape[0]
         with torch.no_grad():
             self.model.eval()
@@ -172,18 +144,7 @@ class NES(object):
 
     
     def __call__(self, images=None, labels=None, target_labels=None):
-        '''This function perform attack on target images with corresponding labels 
-        and target labels for target attack.
-
-        Args:
-            images (torch.Tensor): The images to be attacked. The images should be torch.Tensor with shape [N, C, H, W] and range [0, 1].
-            labels (torch.Tensor): The corresponding labels of the images. The labels should be torch.Tensor with shape [N, ]
-            target_labels (torch.Tensor): The target labels for target attack. The labels should be torch.Tensor with shape [N, ]
-
-        Returns:
-            torch.Tensor: Adversarial images with value range [0,1].
-
-        '''
+        
         adv_images = []
         self.detail = {}
         for i in range(len(images)):
