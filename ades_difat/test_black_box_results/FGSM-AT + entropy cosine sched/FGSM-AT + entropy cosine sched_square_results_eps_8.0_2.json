@@ -1,0 +1,11 @@
+[
+    {
+        "test_clean_acc": 0.917,
+        "test_clean_auc": 0.967028,
+        "test_clean_asr": 0,
+        "test_square_acc": 0.067,
+        "test_square_auc": 0.070164,
+        "test_square_asr": 0.85,
+        "status": "ok"
+    }
+]

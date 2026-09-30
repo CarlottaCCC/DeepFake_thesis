@@ -84,7 +84,7 @@ def plot_epsilon_statistics(eps_stats, lambda_mean, save_path):
 
     plt.xlabel("Epoch")
     plt.ylabel("Epsilon")
-    plt.title(f"Adaptive Epsilon Statistics During Training with lamba mean = {lambda_mean}")
+    plt.title(f"Adaptive Epsilon Statistics During Training with lambda mean = {lambda_mean}")
     plt.grid(True, alpha=0.3)
     plt.legend()
     plt.tight_layout()
@@ -153,16 +153,16 @@ def plot_scheduler(values, save_path, title, xlabel="Epochs", ylabel="Epsilon va
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
 
-#with open("history/history_pgdat_ades_difat/history_pgdat_baseline__linear_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25_freeze.json", "r") as f:
-#    stats = json.load(f)
+with open("history/history_resnet50/history_resnet50_pgdat_ades_MAXLOSS_LINEAR_TARGET_cosine_lambda_mean_50__lr_0.001_seed_42_epochs_25.json", "r") as f:
+    stats = json.load(f)
 #
 #loss_label = "MAXLOSS"
-#lambda_mean = stats["lambda_mean"]
+lambda_mean = stats["lambda_mean"]
 
 #save_path_1 = f"plots/eps_stats_{loss_label}_lambda_mean_{lambda_mean}_numepochs_25.png"
 #save_path_2 = f"plots/eps_mean_{loss_label}_lambda_mean_{lambda_mean}_num_epochs_25.png"
 
-save_path_1 = f"plots/eps_stats_baseline_numepochs_25.png"
+save_path_1 = f"plots/eps_stats_ades_cosine_numepochs_25.png"
 save_path_2 = f"plots/eps_mean_baseline_num_epochs_25.png"
 
 epsilon_list = []
@@ -172,6 +172,6 @@ for epoch in range(num_epochs):
     eps = get_epsilon(epoch, num_epochs, 0/255, 8/255, "cosine")
     epsilon_list.append(eps)
 
-plot_scheduler(epsilon_list, save_path="plots/generic_cosine_eps_scheduler.png", title="Cosine Epsilon Scheduler Plot")
-#plot_epsilon_statistics(stats["eps_stats"], lambda_mean, save_path_1)
+#plot_scheduler(epsilon_list, save_path="plots/generic_cosine_eps_scheduler.png", title="Cosine Epsilon Scheduler Plot")
+plot_epsilon_statistics(stats["eps_stats"], lambda_mean, save_path_1)
 #plot_epsilon_convergence(stats["eps_stats"], lambda_mean, save_path_2)

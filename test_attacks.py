@@ -132,18 +132,18 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
             imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
 
         elif attack_type == 'nes' and library == 'None':
-            imgs_adv = nes_attack_first_v(model, imgs_correct, labels_correct, eps=epsilon, 
+            imgs_adv = nes_attack_first_v(model, imgs, labels, eps=epsilon, 
                                   sigma=0.001, n_samples=50, step_size=2/255, 
                                   n_iters=100, device=device)
 
             imgs_adv = normalize(imgs_adv.detach())
         elif attack_type == 'square' and library == 'None':
-             imgs_adv = attack_fn.generate(x=imgs_correct.cpu().numpy(), y=labels_correct.cpu().numpy())
+             imgs_adv = attack_fn.generate(x=imgs.cpu().numpy(), y=labels.cpu().numpy())
              # ART returns numpy, need to convert imgs_square to tensor to pass it to the model
              imgs_adv = torch.from_numpy(imgs_adv).float().to(device)
              imgs_adv = normalize(imgs_adv.detach())
         elif attack_type == 'genattack' and library == 'None':
-             imgs_adv, success, n_queries = attack_fn.attack_batch(imgs_correct,labels_correct)
+             imgs_adv, success, n_queries = attack_fn.attack_batch(imgs,labels)
              imgs_adv = normalize(imgs_adv.detach())
              
         #elif library == 'foolbox' and attack_type == 'genattack':
@@ -157,11 +157,11 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
         #    imgs_adv = normalize(imgs_adv.detach())
 
         #normalize
-        imgs = normalize(imgs_correct.detach())
+        imgs = normalize(imgs.detach())
 
         # compute L2 and Linf metrics
         #delta = imgs_adv - imgs
-        delta = imgs_adv - imgs_correct
+        delta = imgs_adv - imgs
         l2, linf = batch_norms(delta)
         adv_metrics.total_l2 += l2.sum().item()
         adv_metrics.total_linf += linf.sum().item()
@@ -180,9 +180,9 @@ def test_attack(model, test_loader, attack_type, epsilon, library, model_name, m
             #debug
             preds_clean = torch.argmax(logits_clean, dim=1)
             preds_adv = torch.argmax(logits_adv, dim=1)
-            clean_metrics.update(labels_correct, probs_clean)
+            clean_metrics.update(labels, probs_clean)
             probs_adv = torch.softmax(logits_adv, dim=1)[:,1].detach().cpu().numpy()
-            adv_metrics.update(labels_correct, probs_adv)
+            adv_metrics.update(labels, probs_adv)
 
         #correct_adv += (preds_adv == y_to_attack).sum().item()
 

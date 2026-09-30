@@ -1,6 +1,6 @@
 import os
 os.environ['MPLCONFIGDIR'] = "/work/project"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 from torchvision.models import resnet50, ResNet50_Weights
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from utils import *
 import foolbox as fb
 
-def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed):
+def train_robust(model, train_loader, val_loader, epsilon, epsilon_scheduler, type_sched, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed):
     train_loss = 0.0
     history = {}
     early_stopping = EarlyStopping(patience=100)
@@ -26,8 +26,6 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
     std=[1/0.229, 1/0.224, 1/0.225]
     )
     
-    type = 'None'
-    eps_scheduler = EpsilonScheduler(eps_start=0/255, eps_end=8/255, num_epochs_rampup=10, type=type)
 
     fgsm = fb.attacks.FGSM()
 
@@ -37,13 +35,19 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
             axis=-3  # per PyTorch (C, H, W)
             )
     fmodel = fb.PyTorchModel(model, bounds=(0,1), preprocessing=preprocessing, device=device)
+
+    val_acc_adv = 0
+    clean_acc   = 0
+    train_losses = []
+    val_losses = []
     
 
     for epoch in range(start_epoch, num_epochs):
         #TRAINING
         model.train()
         train_loss = 0.0
-        current_eps = epsilon
+        if epsilon_scheduler != None:
+            epsilon = epsilon_scheduler.get_epsilon(val_acc_adv, clean_acc, epoch)
         #current_eps = eps_scheduler.get_epsilon(epoch)
         # I block update statistics of BatchNorm
         freeze_bn(model)
@@ -145,6 +149,10 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
 
         val_results_clean = val_metrics_clean.compute()
         val_results_adv = val_metrics_adv.compute()
+        val_losses.append(epoch_val_loss)
+
+        val_acc_adv = val_metrics_adv.accuracy_list[epoch]
+        clean_acc = val_metrics_clean.accuracy_list[epoch] 
 
         print(f"Epoch {epoch+1}:")
         print("TRAINING")
@@ -166,7 +174,12 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         #if early_stopping(val_metrics.accuracy_list[epoch], model, optimizer, epoch, seed, eps_scheduler.type, "fgsm", train_metrics_clean, train_metrics_adv, val_metrics, train_losses, current_eps):
         #    break
 
-    save_path =  f'{MODELS_DIR}/no_eps_scheduler/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}.pt'
+    if epsilon_scheduler != None:
+            save_path =  f'{MODELS_DIR}/with_eps_scheduler_fgsm/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_{type_sched}_eps_scheduler_seed_{seed}.pt'
+            history_path = f"history/history_fgsm/with_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_{type_sched}_eps_scheduler_seed_{seed}_None_sched_FINAL.json"
+    else:
+        save_path =  f'{MODELS_DIR}/no_eps_scheduler/resnet50_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}.pt'
+        history_path = f"history/history_fgsm/no_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_FINAL.json"
     torch.save({
         'epoch': epoch + 1,
         'model_state_dict': model.state_dict(),
@@ -189,6 +202,7 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
     history = {
         "epoch": epoch+1,
         "train_losses": train_losses,
+        "val_losses": val_losses,
         "train_auc_clean": train_metrics_clean.auc_list,
         "train_auc_adv": train_metrics_adv.auc_list,
         "val_auc_clean": val_metrics_clean.auc_list,
@@ -210,9 +224,9 @@ def train_robust(model, train_loader, val_loader, epsilon, start_epoch, num_epoc
         "val_recall_adv": val_metrics_adv.recall_list,
         "val_accuracy_adv": val_metrics_adv.accuracy_list,
         "train_asr": train_metrics_adv.asr_list,
-        "train_epsilon": current_eps
+        "train_epsilon": epsilon
     }
-    save_history_json(history,f"history/history_fgsm/no_eps_scheduler/history_fgsm_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{current_eps}_seed_{seed}.json")
+    save_history_json(history,history_path)
     
 
     return train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses
@@ -333,6 +347,10 @@ if __name__ == "__main__":
         #train_metrics_adv.asr_list = history["train_asr"]
     
         epsilons = [2/255, 8/255]
+        eps = 0
+        num_epochs=25
+        type_sched_list = ['cosine','linear']
+        num_epochs_rampup = int(num_epochs/2)
     
         for eps in epsilons:
             train_metrics_clean = Metrics()
@@ -342,14 +360,23 @@ if __name__ == "__main__":
             start_epoch = 0
             train_losses = []
 
+            #epsilon_scheduler = CurriculumEpsilonScheduler(
+            #        eps_start=0/255, eps_end=8/255,
+            #        num_epochs_rampup=num_epochs_rampup, type=type_sched,
+            #        adaptive=True, patience=5, num_epochs_per_eps=1
+            #    )
+
             print(f"Starting training with epsilon {eps}")
+            #print(f"Starting training with {type_sched} epsilon scheduler")
             train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
                 model=model, 
                 train_loader=train_loader, 
                 val_loader=val_loader,
                 epsilon=eps,
+                epsilon_scheduler=None,
+                type_sched="None",
                 start_epoch=start_epoch, 
-                num_epochs=12, 
+                num_epochs=num_epochs, 
                 optimizer=optimizer,
                 scheduler=scheduler, 
                 criterion=criterion,
@@ -360,4 +387,39 @@ if __name__ == "__main__":
                 val_metrics_clean=val_metrics_clean,
                 val_metrics_adv=val_metrics_adv,
                 seed=seed)
-        
+
+        for type_sched in type_sched_list:
+                train_metrics_clean = Metrics()
+                train_metrics_adv = Metrics()
+                val_metrics_clean = Metrics()
+                val_metrics_adv = Metrics()
+                start_epoch = 0
+                train_losses = []
+    
+                epsilon_scheduler = CurriculumEpsilonScheduler(
+                        eps_start=0/255, eps_end=8/255,
+                        num_epochs_rampup=num_epochs_rampup, type=type_sched,
+                        adaptive=True, patience=5, num_epochs_per_eps=1
+                    )
+    
+                #print(f"Starting training with epsilon {eps}")
+                print(f"Starting training with {type_sched} epsilon scheduler")
+                train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust(
+                    model=model, 
+                    train_loader=train_loader, 
+                    val_loader=val_loader,
+                    epsilon=eps,
+                    epsilon_scheduler=epsilon_scheduler,
+                    type_sched=type_sched,
+                    start_epoch=start_epoch, 
+                    num_epochs=num_epochs, 
+                    optimizer=optimizer,
+                    scheduler=scheduler, 
+                    criterion=criterion,
+                    device=device,
+                    train_losses=train_losses,
+                    train_metrics_clean=train_metrics_clean,
+                    train_metrics_adv=train_metrics_adv,
+                    val_metrics_clean=val_metrics_clean,
+                    val_metrics_adv=val_metrics_adv,
+                    seed=seed)

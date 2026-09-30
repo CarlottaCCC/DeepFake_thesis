@@ -166,13 +166,21 @@ if __name__ == "__main__":
     #                        {"model_label":"ADES + PGD-AT + DiFat", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_ades_baseline_difat_epochsbaseline_[14, 15, 16, 17, 18, 19, 20, 21, 22, 23]_epochsdifat_[24]__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
     #                        {"model_label":"baseline model", "model_name":"resnet50_clean_epoch_12_LR_0.0001_batchsize_32_WD_0.01_aug.pt"}]
 
-    models_names = [{"model_label":"PGD-AT + DiFat conf 2", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_baseline_difat_epochsdifat_7__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
-                            {"model_label":"PGD-AT + DiFat conf 4", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_baseline_difat_epochsdifat_[3, 6, 13]__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
-                            {"model_label":"ADES + PGD-AT + DiFat", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_ades_baseline_difat_epochsbaseline_[14, 15, 16, 17, 18, 19, 20, 21, 22, 23]_epochsdifat_[24]__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
-                            {"model_label":"baseline model", "model_name":"resnet50_clean_epoch_12_LR_0.0001_batchsize_32_WD_0.01_aug.pt"}]
+    #models_names = [{"model_label":"PGD-AT + DiFat conf 2", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_baseline_difat_epochsdifat_7__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
+    #                        {"model_label":"PGD-AT + DiFat conf 4", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_baseline_difat_epochsdifat_[3, 6, 13]__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
+    #                        {"model_label":"ADES + PGD-AT + DiFat", "model_name":"pgdat_mixed_trainings/resnet50_pgdat_ades_baseline_difat_epochsbaseline_[14, 15, 16, 17, 18, 19, 20, 21, 22, 23]_epochsdifat_[24]__lr_0.001_seed_42_epochs_25_numeprampup_12.pt"},
+    #                        {"model_label":"baseline model", "model_name":"resnet50_clean_epoch_12_LR_0.0001_batchsize_32_WD_0.01_aug.pt"}]
 
-    
+    #fgsm_models_names = [{"model_label":"FGSM-AT + entropy cosine eps sched", "model_name":"with_eps_scheduler_fgsm/resnet50_square_epoch_11_LR_0.0001_batchsize_32_WD_0.01_seed_42_cosine_sched_4_init.pt"},
+    #                     {"model_label":"FGSM-AT fixed eps=2", "model_name":"no_eps_scheduler/resnet50_fgsm_epoch_11_LR_0.0001_batchsize_32_WD_0.01_EPS_0.00784313725490196_seed_42_FINAL.pt"},
+    #                     {"model_label":"FGSM-AT + entropy fixed eps=2", "model_name":"no_eps_scheduler/resnet50_square_epoch_11_LR_0.0001_batchsize_32_WD_0.01_EPS_0.00784313725490196_seed_42_FINAL.pt"},
+    #                     {"model_label":"FGSM-AT fixed eps=8", "model_name":"no_eps_scheduler/resnet50_fgsm_epoch_11_LR_0.0001_batchsize_32_WD_0.01_EPS_0.03137254901960784_seed_42_FINAL.pt"},
+    #                     {"model_label":"FGSM-AT + entropy fixed eps=8", "model_name":"no_eps_scheduler/resnet50_square_epoch_11_LR_0.0001_batchsize_32_WD_0.01_EPS_0.03137254901960784_seed_42_FINAL.pt"}]
 
+    fgsm_models_names = [{"model_label":"FGSM-AT cosine sched", "model_name":"with_eps_scheduler_fgsm/resnet50_fgsm_epoch_24_LR_0.0001_batchsize_32_WD_0.01_cosine_eps_scheduler_seed_42.pt"},
+                         {"model_label":"FGSM-AT linear sched", "model_name":"with_eps_scheduler_fgsm/resnet50_fgsm_epoch_24_LR_0.0001_batchsize_32_WD_0.01_linear_eps_scheduler_seed_42.pt"}]
+
+    models_names = [{"model_label":"PGD-AT cosine sched", "model_name":"pgdat_ades_difat/resnet50_pgdat_baseline__cosine_eps_sched_numeprampup12_lr_0.001_seed_42_epochs_25.pt"}]
     for model_item in models_names:
 
         model_label = model_item["model_label"]
@@ -180,5 +188,5 @@ if __name__ == "__main__":
         checkpoint_path = f"{MODELS_DIR}/{model_name}"
         model = reset_model(checkpoint_path,device)
 
-        test_black_box(model_label, model, test_loader, epsilon=16/255, device=device)
+        test_black_box(model_label, model, test_loader, epsilon=8/255, device=device)
     

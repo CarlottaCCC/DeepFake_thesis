@@ -1,0 +1,12 @@
+[
+    {
+        "test_clean_acc": 0.921,
+        "test_clean_auc": 0.953338,
+        "test_clean_asr": 0,
+        "test_square_acc": 0.124,
+        "test_square_auc": 0.165292,
+        "test_square_asr": 0.797,
+        "correct_adv_accuracy": 0,
+        "status": "ok"
+    }
+]

@@ -3,13 +3,6 @@ PGD-AT training loop supporting three attack modes:
   - "baseline": standard fixed-epsilon PGD-AT
   - "ades":     ADES learnable per-sample epsilon scheduler (pgd_at_ades.py)
   - "difat":    DPGD + diffusion purification (pgd_at_difat.py)
- 
-Kept as ONE shared loop (rather than three duplicated ~300-line copies) so the
-metrics/timing/history-saving conventions from your existing pipeline stay in
-exactly one place. The two mechanisms remain independently usable: pass
-mode="ades" or mode="difat" to run either alone; a "combined" mode is a
-straightforward extension once you've validated each independently (swap the
-adaptive-eps output from ADES into dpgd_attack's `eps` argument per-sample).
 """
 import os
 os.environ['MPLCONFIGDIR'] = "/work/project"
@@ -154,6 +147,17 @@ def linear_scheduler(num_epochs, current_epoch, num_epochs_rampup=0, eps_start=0
         t = min(current_epoch / num_epochs_rampup, 1.0)  # clamp to [0,1]
         target_eps = eps_start + (eps_end - eps_start) * t
     return target_eps
+
+import math
+
+def cosine_scheduler(num_epochs, current_epoch, num_epochs_rampup=0, eps_start=0, eps_end=8/255):
+    # If no ramp-up length is given, ramp over the first half of training (as before)
+    if num_epochs_rampup == 0:
+        num_epochs_rampup = num_epochs // 2
+
+    t = min(current_epoch / num_epochs_rampup, 1.0)  # clamp to [0, 1]
+    target_eps = eps_start + (eps_end - eps_start) * 0.5 * (1 - math.cos(math.pi * t))
+    return target_eps
  
 def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_epochs, optimizer, LRscheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, 
                   eps=8/255, alpha=2/255, steps=8, lr=1e-3,
@@ -179,6 +183,7 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
     mode_log = []
     history = {}
     chosen_difat_epochs = []
+    val_losses = []
 
     init_mode = mode
 
@@ -214,13 +219,15 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
 
     #num_baseline = 11 # number of epochs of pgdat after ades
     index_start_baseline = num_epochs_rampup + 1
-    baseline_epochs = list(range(index_start_baseline, num_epochs - 3))
+    #baseline_epochs = list(range(index_start_baseline, num_epochs - 3))
+    baseline_epochs = [14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     #print(baseline_epochs)
     # guard: make sure there's room for num_baseline pgdat epochs in the second half
     #assert len(baseline_epochs) >= num_baseline, "second half too short for requested baseline count"
-    print(f"baseline epochs: {baseline_epochs}")
+    #print(f"baseline epochs: {baseline_epochs}")
 
-    difat_epochs = list(range(num_epochs-3, num_epochs))
+    #difat_epochs = list(range(num_epochs-3, num_epochs))
+    difat_epochs = [15,16,17,21,22,23,24]
     print(f"difat epochs: {difat_epochs}")
     
     
@@ -273,16 +280,16 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
         #    print(f"changed mode to {mode_changed}")
         #    eps = 8/255
 #
-        #if epoch in difat_epochs:
-        #    mode = "difat"
-        #    mode_changed = "difat"
-        #    eps = 8/255
-        #    chosen_difat_epochs.append(epoch)
+        if epoch in difat_epochs:
+            #mode = "difat"
+            mode_changed = "difat"
+            eps = 8/255
+            chosen_difat_epochs.append(epoch)
 #
-        #print(f"current_epsilon: {eps*255}/255")
-        #print(f"mode: {mode}")
-        #mode_log.append(mode)
-        #mode_log.append(mode_changed)
+        print(f"current_epsilon: {eps*255}/255")
+        print(f"mode: {mode}")
+        mode_log.append(mode)
+        mode_log.append(mode_changed)
         #difat_label = f"difat_epochs_{chosen_difat_epochs}"
         #print(difat_label)
 
@@ -351,7 +358,7 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
                 #print(f"imgs_adv_raw.grad_fn: {imgs_adv_raw.grad_fn}")
                 #technique_used = "ades"
  
-            elif mode == "difat":
+            elif mode == "difat" or mode_changed == "difat":
                 imgs_adv_raw = dpgd_attack(
                     model, imgs_raw.detach(), y, eps, alpha, steps,
                     purifier=difat_purifier, normalize=normalize, margin_c=difat_margin_c,
@@ -392,7 +399,8 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
                 loss_type = "MAXLOSS_LINEAR_TARGET"
                 #scheduler_loss = -loss_adv - beta * eps_x.var(unbiased=False)
                 num_epochs_rampup = num_epochs_rampup
-                target_eps = linear_scheduler(num_epochs, epoch, num_epochs_rampup=num_epochs_rampup) / (8/255)
+                #target_eps = linear_scheduler(num_epochs, epoch, num_epochs_rampup=num_epochs_rampup) / (8/255)
+                target_eps = cosine_scheduler(num_epochs, epoch, num_epochs_rampup=num_epochs_rampup) / (8/255)
                 current_mean = mean_eps / (8/255)
                 adv_term = - loss_adv
                 mean_term = lambda_mean * (current_mean - target_eps).pow(2)
@@ -414,7 +422,7 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
 
             if mode == "ades" and mode_changed == "None":
                 loss.backward(retain_graph=True)
-            elif mode == "baseline" or mode == "difat" or mode_changed == "baseline":
+            elif mode == "baseline" or mode == "difat" or mode_changed == "difat" or mode_changed == "baseline":
                 loss.backward()
 
             #print("eps_x.grad:", eps_x.grad)
@@ -533,7 +541,8 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
         val_acc_adv = val_metrics_adv.accuracy_list[epoch]
         clean_acc = val_metrics_clean.accuracy_list[epoch] 
  
-        epoch_val_loss = val_loss / max(n_val, 1)
+        epoch_val_loss = val_loss / len(val_loader.dataset)
+        val_losses.append(epoch_val_loss)
 
         LRscheduler.step()
  
@@ -556,9 +565,9 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
           f"mode={mode}, avg {sum(epoch_total_times)/max(len(epoch_total_times),1):.2f}s/epoch")
 
     if init_mode == "ades" and mode_changed == 'None':
-        mode = f"ades_{loss_type}_lambda_mean_{lambda_mean}"
+        mode = f"ades_{loss_type}_cosine_lambda_mean_{lambda_mean}"
     elif mode == "ades" and mode_changed == 'baseline':
-        mode = f"ades_baseline_epochsbaseline_{baseline_epochs}"
+        mode = f"ades_cosine_baseline_epochsbaseline_{baseline_epochs}"
 
     epsilon_label = ""
     if init_mode == "baseline" and mode_changed == 'None':
@@ -568,7 +577,7 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
     elif init_mode == "baseline" and mode_changed == 'difat' and chosen_difat_epochs == []:
         mode = f"baseline_difat_epochsdifat_{difat_epochs}"
     elif init_mode == "ades" and mode_changed == 'difat':
-         mode = f"ades_baseline_difat_epochsbaseline_{baseline_epochs}_epochsdifat_{chosen_difat_epochs}"
+         mode = f"ades_cosine_baseline_difat_epochsbaseline_{baseline_epochs}_epochsdifat_{chosen_difat_epochs}"
 
 
     # TESTING #######################
@@ -582,7 +591,7 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
     #test_model(path_test_name, mode_log, model, test_loader)
     ################################
     
-    save_path = f'{MODELS_DIR}/resnet50/resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}.pt'
+    save_path = f'{MODELS_DIR}/pgdat_ades_difat/resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}.pt'
     history_path = f"history/history_resnet50/history_resnet50_pgdat_{mode}_{epsilon_label}_lr_{lr}_seed_{seed}_epochs_{num_epochs}.json"
  
     if save_model:
@@ -617,6 +626,7 @@ def train_pgd_at(model, train_loader, val_loader, test_loader, start_epoch, num_
             "lambda_mean": lambda_mean,
             "beta": beta,
             "train_losses": train_losses,
+            "val_losses": val_losses,
             "train_auc_clean": train_metrics_clean.auc_list,
             "train_auc_adv": train_metrics_adv.auc_list,
             "val_auc_clean": val_metrics_clean.auc_list,
@@ -667,7 +677,7 @@ if __name__ == "__main__":
     }
 
     mode = "baseline"
-    #mode_changed = "baseline"
+    mode_changed = "difat"
     p_difat = 0.5
 
     lambda_mean_list = [50]

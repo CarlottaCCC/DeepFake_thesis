@@ -1,6 +1,6 @@
 import os
 os.environ['MPLCONFIGDIR'] = "/work/project"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 from torchvision.models import resnet50, ResNet50_Weights
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -13,7 +13,7 @@ from utils import *
 os.environ.pop("SSLKEYLOGFILE", None)
 import foolbox as fb
 
-def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed):
+def train_robust_with_entropy(model, train_loader, val_loader, epsilon, epsilon_scheduler, type_sched, start_epoch, num_epochs, optimizer, scheduler, criterion, device, train_losses, train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, seed):
     train_loss = 0.0
     history = {}
     early_stopping = EarlyStopping(patience=100)
@@ -35,11 +35,19 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
             )
     fmodel = fb.PyTorchModel(model, bounds=(0,1), preprocessing=preprocessing, device=device)
 
+    val_acc_adv = 0
+    clean_acc   = 0
+
+    train_losses = []
+    val_losses = []
+
 
     for epoch in range(start_epoch, num_epochs):
         #TRAINING
         model.train()
         train_loss = 0.0
+        if epsilon_scheduler != None:
+            epsilon = epsilon_scheduler.get_epsilon(val_acc_adv, clean_acc, epoch)
         # I block update statistics of BatchNorm
         freeze_bn(model)
         train_metrics_clean.reset_epoch()
@@ -47,7 +55,7 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         val_metrics_clean.reset_epoch()
         val_metrics_adv.reset_epoch()
 
-        loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
+        loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} | epsilon = {epsilon}")
         for batch in loop:
             if batch is None:
                 continue
@@ -140,6 +148,10 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
 
         val_results_clean = val_metrics_clean.compute()
         val_results_adv = val_metrics_adv.compute()
+        val_losses.append(epoch_val_loss)
+
+        val_acc_adv = val_metrics_adv.accuracy_list[epoch]
+        clean_acc = val_metrics_clean.accuracy_list[epoch] 
 
         print(f"Epoch {epoch+1}:")
         print("TRAINING")
@@ -166,7 +178,12 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         #if early_stopping(epoch_val_loss, model, optimizer, epoch, seed, "square", train_metrics_clean, train_metrics_adv, val_metrics, train_losses):
         #    break
 
-    model_path = f'{MODELS_DIR}/no_eps_scheduler/resnet50_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_FINAL.pt'
+    if epsilon_scheduler != None:
+        save_path =  f'{MODELS_DIR}/with_eps_scheduler_fgsm/resnet50_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_{type_sched}_eps_scheduler_seed_{seed}.pt'
+        history_path = f"history/history_square/with_eps_scheduler/history_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_{type_sched}_eps_scheduler_seed_{seed}_None_sched_FINAL.json"
+    else:
+        save_path =  f'{MODELS_DIR}/no_eps_scheduler/resnet50_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}.pt'
+        history_path = f"history/history_square/no_eps_scheduler/history_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_FINAL.json"
     ##SALVA I PESI DEL MODELLO
     torch.save({
         'epoch': epoch + 1,
@@ -185,11 +202,12 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         "train_fpr_adv": train_metrics_adv.fpr,
         "val_fpr_clean": val_metrics_clean.fpr,
         "val_fpr_adv": val_metrics_adv.fpr
-    },model_path)
+    },save_path)
     # save history
     history = {
         "epoch": epoch+1,
         "train_losses": train_losses,
+        "val_losses": val_losses,
         "train_auc_clean": train_metrics_clean.auc_list,
         "train_auc_adv": train_metrics_adv.auc_list,
         "val_auc_clean": val_metrics_clean.auc_list,
@@ -214,7 +232,7 @@ def train_robust_with_entropy(model, train_loader, val_loader, epsilon, start_ep
         "train_epsilon": epsilon
     }
 
-    save_history_json(history,f"history/history_square/no_eps_scheduler/history_square_epoch_{epoch}_LR_{LR}_batchsize_{BATCH_SIZE}_WD_{WD}_EPS_{epsilon}_seed_{seed}_None_sched_FINAL.json")
+    save_history_json(history,history_path)
 
     return train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses
 
@@ -336,6 +354,12 @@ if __name__ == "__main__":
     #train_metrics_adv.asr_list = history["train_asr"]
 #
     epsilons = [2/255, 8/255]
+
+    eps = 0
+    num_epochs=25
+    type_sched_list = ['cosine','linear']
+    num_epochs_rampup = int(num_epochs/2)
+
     for eps in epsilons:
         train_metrics_clean = Metrics()
         train_metrics_adv = Metrics()
@@ -344,14 +368,23 @@ if __name__ == "__main__":
         start_epoch = 0
         train_losses = []
 
+        #epsilon_scheduler = CurriculumEpsilonScheduler(
+        #        eps_start=0/255, eps_end=8/255,
+        #        num_epochs_rampup=num_epochs_rampup, type=type_sched,
+        #        adaptive=True, patience=5, num_epochs_per_eps=1
+        #    )
+
         print(f"Starting training with epsilon {eps}")
+        #print(f"Starting training with {type_sched} epsilon scheduler")
         train_metrics_clean, train_metrics_adv, val_metrics_clean, val_metrics_adv, train_losses = train_robust_with_entropy(
             model=model, 
             train_loader=train_loader, 
             val_loader=val_loader,
             epsilon=eps,
             start_epoch=start_epoch, 
-            num_epochs=12, 
+            num_epochs=num_epochs, 
+            epsilon_scheduler=None,
+            type_sched="None",
             optimizer=optimizer, 
             scheduler=scheduler,
             criterion=criterion,
